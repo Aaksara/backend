@@ -61,3 +61,30 @@ export const getEnrolledAssignments = async (req: AuthRequest, res: Response) =>
     res.status(500).json({ message: 'Failed to fetch assignments', error });
   }
 };
+
+export const getCourseAssignments = async (req: AuthRequest, res: Response) => {
+  try {
+    const { courseId } = req.params;
+    const assignments = await prisma.assignment.findMany({ where: { courseId } });
+    res.json(assignments);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch assignments', error });
+  }
+};
+
+export const deleteAssignment = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const teacherId = req.user?.id;
+    
+    const assignment = await prisma.assignment.findUnique({ where: { id }, include: { course: true } });
+    if (!assignment || assignment.course.teacherId !== teacherId) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    await prisma.assignment.delete({ where: { id } });
+    res.json({ message: 'Assignment deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to delete assignment', error });
+  }
+};
