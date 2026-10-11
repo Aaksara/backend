@@ -1,26 +1,43 @@
-version: '3.8'
-
 services:
-  app:
+  web:
     build: .
-    ports:
-      - "5000:5000"
+    env_file:
+      - path: .env
+        required: false
     environment:
-      - DATABASE_URL=postgresql://user:password@db:5432/ems_pro?schema=public
-      - JWT_SECRET=your_jwt_secret
+      DATABASE_URL: postgres://bookx:bookx@db:5432/bookx
+      REDIS_URL: redis://redis:6379/0
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-true}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    volumes:
+      - media:/app/media
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   db:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=ems_pro
+      POSTGRES_USER: bookx
+      POSTGRES_PASSWORD: bookx
+      POSTGRES_DB: bookx
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5434}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bookx -d bookx"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
 
 volumes:
   postgres_data:
+  media:
