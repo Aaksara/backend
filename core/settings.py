@@ -123,8 +123,13 @@ if os.environ.get("AWS_STORAGE_BUCKET_NAME"):
     AWS_S3_ENDPOINT_URL = os.environ.get("AWS_S3_ENDPOINT_URL") or None
     AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME") or None
     AWS_S3_SIGNATURE_VERSION = "s3v4"
+    AWS_S3_ADDRESSING_STYLE = "path"  # endpoint/bucket/key; required by Supabase, fine elsewhere
     AWS_S3_FILE_OVERWRITE = False
-    AWS_QUERYSTRING_EXPIRE = 6 * 60 * 60  # signed image links last 6 hours
+    # Public bucket (e.g. Supabase: <project>.supabase.co/storage/v1/object/public/<bucket>):
+    # links point there without a signature. Otherwise links are signed for 6 hours.
+    AWS_S3_CUSTOM_DOMAIN = os.environ.get("AWS_S3_CUSTOM_DOMAIN") or None
+    AWS_QUERYSTRING_AUTH = AWS_S3_CUSTOM_DOMAIN is None
+    AWS_QUERYSTRING_EXPIRE = 6 * 60 * 60
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
