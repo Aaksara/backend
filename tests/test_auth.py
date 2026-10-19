@@ -1,4 +1,5 @@
 import re
+import smtplib
 
 import pytest
 from django.core import mail
@@ -149,3 +150,25 @@ def test_password_reset_does_not_leak_accounts(client_for):
     resp = client_for().post("/api/auth/password/reset/", {"email": "ghost@university.edu"})
     assert resp.status_code == 200
     assert len(mail.outbox) == 0
+
+
+def _fail_sending(monkeypatch):
+    def send_mail(**kwargs):
+        raise smtplib.SMTPServerDisconnected("Connection unexpectedly closed")
+
+    monkeypatch.setattr("accounts.emails.send_mail", send_mail)
+
+
+def test_register_reports_unsent_email_and_keeps_no_account(client_for, monkeypatch):
+    _fail_sending(monkeypatch)
+    resp = _register(client_for())
+    assert resp.status_code == 503
+    assert "try again" in resp.data["detail"]
+    assert not User.objects.filter(email="new.student@university.edu").exists()
+
+
+def test_password_reset_hides_unsent_email(client_for, make_user, monkeypatch):
+    make_user(email="real@university.edu")
+    _fail_sending(monkeypatch)
+    resp = client_for().post("/api/auth/password/reset/", {"email": "real@university.edu"})
+    assert resp.status_code == 200
