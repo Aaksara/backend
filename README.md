@@ -6,8 +6,8 @@ in person.
 
 Stack: Django, Django REST Framework, PostgreSQL, Channels (WebSockets) and Redis.
 
-Every endpoint is documented in the [Bruno](https://www.usebruno.com/) collection in
-[`apis/`](apis/): open that folder in Bruno and pick the **Local** environment.
+Every endpoint is documented in the [Bruno](https://www.usebruno.com/) collection in the
+[apis repo](https://github.com/Aaksara/apis).
 
 ## Run it
 
@@ -31,7 +31,6 @@ ruff check . && ruff format --check .
 ## Layout
 
 ```
-apis/            Bruno collection: every endpoint with an example and its docs
 config/          settings, URLs, ASGI routing
 apps/core/       shared base model, pagination, health check
 apps/accounts/   users, sign-up, email verification, cookie login
