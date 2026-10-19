@@ -154,10 +154,9 @@ MAX_IMAGE_UPLOAD_BYTES = 4 * 1024 * 1024
 
 # --- Email ---------------------------------------------------------------------
 
+# Production on Vercel: utilities.email_backend.BrevoEmailBackend with BREVO_API_KEY.
 EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
-# Django's SMTP backend fails with Brevo (see utilities/email_backend.py), so use ours instead.
-if EMAIL_BACKEND == "django.core.mail.backends.smtp.EmailBackend":
-    EMAIL_BACKEND = "utilities.email_backend.EmailBackend"
+BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "").strip()
 # .strip(): a space or line break pasted into a hosting dashboard breaks the SMTP login.
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "localhost").strip()
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
