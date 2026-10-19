@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import pytest
 
-from apps.books.models import Book, Listing
+from books.models import Book, Listing
 
 pytestmark = pytest.mark.django_db
 
@@ -27,7 +27,7 @@ def fake_lookup(monkeypatch):
         calls.append(isbn13)
         return dict(FAKE_METADATA) if isbn13 == "9780132350884" else None
 
-    monkeypatch.setattr("apps.books.services.fetch_book_metadata", fake)
+    monkeypatch.setattr("books.services.fetch_book_metadata", fake)
     return calls
 
 

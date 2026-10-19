@@ -24,4 +24,4 @@ RUN DJANGO_SECRET_KEY=build python manage.py collectstatic --noinput
 EXPOSE 8000
 
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "config.asgi:application"]
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "core.asgi:application"]

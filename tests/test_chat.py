@@ -3,9 +3,9 @@ from channels.db import database_sync_to_async
 from channels.testing import WebsocketCommunicator
 from rest_framework_simplejwt.tokens import AccessToken
 
-from apps.chat import consumers
-from apps.chat.models import Conversation, Message
-from config.asgi import application
+from chat import consumers
+from chat.models import Conversation, Message
+from core.asgi import application
 
 
 @pytest.mark.django_db
@@ -52,10 +52,9 @@ class TestConversationAPI:
 
 
 def _connect(path, user=None, origin=b"http://localhost:3000"):
-    headers = [(b"origin", origin)]
     if user is not None:
-        headers.append((b"cookie", f"access_token={AccessToken.for_user(user)}".encode()))
-    return WebsocketCommunicator(application, path, headers=headers)
+        path += f"?token={AccessToken.for_user(user)}"
+    return WebsocketCommunicator(application, path, headers=[(b"origin", origin)])
 
 
 @pytest.fixture

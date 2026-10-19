@@ -5,7 +5,7 @@ services:
       - path: .env
         required: false
     environment:
-      DATABASE_URL: postgres://bookx:bookx@db:5432/bookx
+      DATABASE_URL: postgres://aksara:aksara@db:5432/aksara
       REDIS_URL: redis://redis:6379/0
       DJANGO_DEBUG: ${DJANGO_DEBUG:-true}
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
@@ -22,15 +22,15 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: bookx
-      POSTGRES_PASSWORD: bookx
-      POSTGRES_DB: bookx
+      POSTGRES_USER: aksara
+      POSTGRES_PASSWORD: aksara
+      POSTGRES_DB: aksara
     ports:
       - "${DB_PORT:-5434}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bookx -d bookx"]
+      test: ["CMD-SHELL", "pg_isready -U aksara -d aksara"]
       interval: 5s
       timeout: 5s
       retries: 10

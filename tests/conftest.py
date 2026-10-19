@@ -7,9 +7,9 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from apps.accounts.models import User
-from apps.books.models import Book, Listing
-from apps.exchanges.models import MeetupLocation
+from accounts.models import User
+from books.models import Book, Listing
+from exchanges.models import MeetupLocation
 
 PASSWORD = "S3cure-pass-phrase"
 

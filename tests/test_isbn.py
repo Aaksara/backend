@@ -1,6 +1,6 @@
 import pytest
 
-from apps.books.isbn import InvalidISBN, to_isbn10, to_isbn13
+from books.isbn import InvalidISBN, to_isbn10, to_isbn13
 
 
 @pytest.mark.parametrize(

@@ -1,7 +1,7 @@
 import pytest
 
-from apps.books.models import Listing
-from apps.exchanges.models import ExchangeRequest
+from books.models import Listing
+from exchanges.models import ExchangeRequest
 
 pytestmark = pytest.mark.django_db
 
