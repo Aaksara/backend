@@ -81,7 +81,9 @@ vercel.json  runs core/wsgi.py on Vercel's Python runtime
    | `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS` | the frontend URL, e.g. `https://aksara.vercel.app` |
    | `UNIVERSITY_EMAIL_DOMAINS` | your university's email domains |
    | `AWS_STORAGE_BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_ENDPOINT_URL` | the bucket |
-   | `EMAIL_BACKEND`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL` | SMTP for verification and reset emails |
+   | `EMAIL_BACKEND` | `utilities.email_backend.BrevoEmailBackend` (Brevo drops SMTP logins from Vercel) |
+   | `BREVO_API_KEY` | a Brevo API key (`xkeysib-...`, under SMTP & API → API Keys) |
+   | `DEFAULT_FROM_EMAIL` | a sender verified in Brevo, e.g. `Akshara <you@example.com>` |
    | `NUM_PROXIES` | `1` |
    | `REDIS_URL` | optional, recommended: an Upstash Redis URL, so rate limits are shared |
 

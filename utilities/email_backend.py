@@ -1,33 +1,47 @@
-import smtplib
+from email.utils import parseaddr
 
-from django.core.mail.backends import smtp
+import requests
+from django.conf import settings
+from django.core.mail.backends.base import BaseEmailBackend
+
+BREVO_SEND_URL = "https://api.brevo.com/v3/smtp/email"
 
 
-class _NoCramMd5:
-    """Logs in with PLAIN or LOGIN even when the server also offers CRAM-MD5.
+class BrevoEmailBackend(BaseEmailBackend):
+    """Sends email through Brevo's HTTP API.
 
-    smtplib tries CRAM-MD5 first when it is offered. Brevo offers it but closes the
-    connection instead of answering, so the login fails with SMTPServerDisconnected.
+    Brevo drops SMTP logins from Vercel without saying why. Its HTTP API works there,
+    and an error response says what is wrong, e.g. {"message": "Key not found"}.
     """
 
-    def login(self, user, password, *, initial_response_ok=True):
-        self.ehlo_or_helo_if_needed()
-        methods = self.esmtp_features.get("auth", "").split()
-        self.esmtp_features["auth"] = " ".join(m for m in methods if m.upper() != "CRAM-MD5")
-        return super().login(user, password, initial_response_ok=initial_response_ok)
+    def send_messages(self, email_messages):
+        sent = 0
+        for message in email_messages:
+            try:
+                self._send(message)
+            except requests.RequestException:
+                if not self.fail_silently:
+                    raise
+            else:
+                sent += 1
+        return sent
 
-
-class _SMTP(_NoCramMd5, smtplib.SMTP):
-    pass
-
-
-class _SMTP_SSL(_NoCramMd5, smtplib.SMTP_SSL):
-    pass
-
-
-class EmailBackend(smtp.EmailBackend):
-    """Django's SMTP backend, without CRAM-MD5."""
-
-    @property
-    def connection_class(self):
-        return _SMTP_SSL if self.use_ssl else _SMTP
+    def _send(self, message):
+        sender_name, sender_email = parseaddr(message.from_email)
+        payload = {
+            "sender": {"name": sender_name or sender_email, "email": sender_email},
+            "to": [{"email": address} for address in message.to],
+            "subject": message.subject,
+            "textContent": message.body,
+        }
+        response = requests.post(
+            BREVO_SEND_URL,
+            json=payload,
+            headers={"api-key": settings.BREVO_API_KEY, "Accept": "application/json"},
+            timeout=settings.EMAIL_TIMEOUT,
+        )
+        if not response.ok:
+            # HTTPError is a RequestException (and so an OSError), with Brevo's reason in it.
+            raise requests.HTTPError(
+                f"Brevo answered {response.status_code}: {response.text}", response=response
+            )
