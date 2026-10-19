@@ -1,0 +1,31 @@
+meta {
+  name: Create book
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/books/
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "isbn_13": "978-0-262-03384-8",
+    "title": "Introduction to Algorithms",
+    "authors": "Cormen, Leiserson, Rivest, Stein"
+  }
+}
+
+script:post-response {
+  if (res.status < 300) bru.setVar("bookId", res.body.id);
+}
+
+docs {
+  For books no public catalogue knows. Required: `isbn_13` (any valid ISBN-10/13), `title`.
+  If a catalogue does know the ISBN, its details are used instead of yours.
+
+  - `201` the book
+  - `400 {"isbn_13": ["A book with this ISBN already exists."]}`
+}

@@ -1,0 +1,30 @@
+meta {
+  name: Login
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/auth/login/
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{email}}",
+    "password": "{{password}}"
+  }
+}
+
+docs {
+  Public. Sets the `access_token` cookie (path `/`) and the `refresh_token` cookie (path
+  `/api/auth/`), both httpOnly. Tokens are never returned in the body.
+
+  - `200` the user. User: `id, email, full_name, student_id, department, phone, avatar, is_email_verified,
+  date_joined`
+  - `401 {"detail": "Please verify your email address before logging in.", "code": "email_not_verified"}`
+  - `401 {"detail": "No active account found with the given credentials"}`
+
+  Limit: 10 requests a minute per IP.
+}

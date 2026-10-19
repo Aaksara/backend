@@ -1,0 +1,19 @@
+meta {
+  name: Refresh session
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/auth/token/refresh/
+  body: none
+  auth: none
+}
+
+docs {
+  Uses the `refresh_token` cookie and sets new cookies (the refresh token is rotated and
+  the old one revoked). Call it when a request returns `401`.
+
+  - `204` new cookies set
+  - `401` not signed in, or the session has expired
+}

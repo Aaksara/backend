@@ -2,7 +2,6 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import Count, Min, Q
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -52,10 +51,6 @@ class BookViewSet(
         metadata = services.fetch_book_metadata(serializer.validated_data["isbn_13"])
         serializer.save(**(metadata or {}))
 
-    @extend_schema(
-        parameters=[OpenApiParameter("isbn", str, required=True, description="ISBN-10 or 13")],
-        responses={200: BookSerializer},
-    )
     @action(detail=False, methods=["get"])
     def lookup(self, request):
         """Find a book by ISBN, importing it from Open Library / Google Books if unknown."""
@@ -80,8 +75,6 @@ class ListingViewSet(viewsets.ModelViewSet):
     ordering_fields = ["created_at", "price"]
 
     def get_queryset(self):
-        if getattr(self, "swagger_fake_view", False):
-            return Listing.objects.none()
         user = self.request.user
         listings = Listing.objects.select_related(
             "book", "seller", "preferred_location"
@@ -126,7 +119,6 @@ class ListingViewSet(viewsets.ModelViewSet):
         """All of the current user's listings, in any status."""
         return self.list(request)
 
-    @extend_schema(request={"multipart/form-data": ListingImageSerializer})
     @action(
         detail=True,
         methods=["post"],

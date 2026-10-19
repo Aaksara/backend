@@ -1,0 +1,17 @@
+meta {
+  name: Delete image
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{baseUrl}}/api/listings/{{listingId}}/images/{{imageId}}/
+  body: none
+  auth: none
+}
+
+docs {
+  Seller only.
+
+  - `204`
+}

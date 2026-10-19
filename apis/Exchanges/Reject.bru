@@ -1,0 +1,17 @@
+meta {
+  name: Reject
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/exchanges/{{exchangeId}}/reject/
+  body: none
+  auth: none
+}
+
+docs {
+  Seller only, while `pending`.
+
+  - `200` the exchange
+}

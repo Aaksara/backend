@@ -1,0 +1,24 @@
+meta {
+  name: Update me
+  type: http
+  seq: 8
+}
+
+patch {
+  url: {{baseUrl}}/api/auth/me/
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "department": "Computer Science"
+  }
+}
+
+docs {
+  Editable: `full_name`, `student_id`, `department`, `phone`, `avatar` (image upload, max
+  5 MB, send as multipart). `email` and `is_email_verified` are read-only.
+
+  - `200` the updated user
+}

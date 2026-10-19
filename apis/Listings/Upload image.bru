@@ -1,0 +1,26 @@
+meta {
+  name: Upload image
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/listings/{{listingId}}/images/
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  image: @file()
+}
+
+script:post-response {
+  if (res.status < 300) bru.setVar("imageId", res.body.id);
+}
+
+docs {
+  Seller only. Multipart field `image`, max 5 MB, at most 5 images per listing.
+  Set the file path in the Body tab.
+
+  - `201 {"id": 1, "image": "http://.../media/listings/...", "uploaded_at": "..."}`
+}

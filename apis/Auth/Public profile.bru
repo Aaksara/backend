@@ -1,0 +1,17 @@
+meta {
+  name: Public profile
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/api/auth/users/{{userId}}/
+  body: none
+  auth: none
+}
+
+docs {
+  What other students can see about a user. Public user: `id, full_name, department, avatar, date_joined`
+
+  - `404` unknown or inactive user
+}

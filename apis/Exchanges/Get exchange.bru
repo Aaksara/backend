@@ -1,0 +1,16 @@
+meta {
+  name: Get exchange
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/exchanges/{{exchangeId}}/
+  body: none
+  auth: none
+}
+
+docs {
+  - `200` the exchange
+  - `404` not yours
+}

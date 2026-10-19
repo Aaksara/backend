@@ -44,7 +44,6 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "django_filters",
     "corsheaders",
-    "drf_spectacular",
     "channels",
     # Local
     "apps.core",
@@ -83,7 +82,6 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
 DATABASES = {
@@ -161,7 +159,6 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 20,
     # Reverse proxies in front of Django, so throttling sees the real client IP.
     "NUM_PROXIES": int(os.environ.get("NUM_PROXIES", "0")),
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
@@ -180,18 +177,6 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
-}
-
-SPECTACULAR_SETTINGS = {
-    "TITLE": "Student Book Exchange API",
-    "DESCRIPTION": "Campus textbook exchange: auth, ISBN search, listings, exchanges, chat.",
-    "VERSION": "1.0.0",
-    "SERVE_INCLUDE_SCHEMA": False,
-    "COMPONENT_SPLIT_REQUEST": True,
-    "ENUM_NAME_OVERRIDES": {
-        "ListingStatusEnum": "apps.books.models.Listing.Status",
-        "ExchangeStatusEnum": "apps.exchanges.models.ExchangeRequest.Status",
-    },
 }
 
 CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", "http://localhost:3000")

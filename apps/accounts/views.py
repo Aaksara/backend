@@ -1,6 +1,5 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
 from rest_framework.exceptions import NotAuthenticated
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -48,7 +47,6 @@ class LoginView(TokenObtainPairView):
     serializer_class = LoginSerializer
     throttle_scope = "auth"
 
-    @extend_schema(responses={200: UserSerializer})
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
         set_auth_cookies(response, response.data["access"], response.data["refresh"])
@@ -61,7 +59,6 @@ class RefreshView(APIView):
 
     permission_classes = [AllowAny]
 
-    @extend_schema(request=None, responses={204: None})
     def post(self, request):
         refresh = request.COOKIES.get(REFRESH_COOKIE)
         if not refresh:
@@ -82,7 +79,6 @@ class VerifyEmailView(APIView):
     permission_classes = [AllowAny]
     throttle_scope = "auth"
 
-    @extend_schema(request=VerifyEmailSerializer, responses={200: dict})
     def post(self, request):
         serializer = VerifyEmailSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -96,7 +92,6 @@ class ResendVerificationView(APIView):
     permission_classes = [AllowAny]
     throttle_scope = "auth"
 
-    @extend_schema(request=EmailSerializer, responses={200: dict})
     def post(self, request):
         serializer = EmailSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -112,7 +107,6 @@ class PasswordResetRequestView(APIView):
     permission_classes = [AllowAny]
     throttle_scope = "auth"
 
-    @extend_schema(request=EmailSerializer, responses={200: dict})
     def post(self, request):
         serializer = EmailSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -128,7 +122,6 @@ class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
     throttle_scope = "auth"
 
-    @extend_schema(request=PasswordResetConfirmSerializer, responses={200: dict})
     def post(self, request):
         serializer = PasswordResetConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -140,7 +133,6 @@ class PasswordResetConfirmView(APIView):
 
 
 class ChangePasswordView(APIView):
-    @extend_schema(request=ChangePasswordSerializer, responses={200: dict})
     def post(self, request):
         serializer = ChangePasswordSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
@@ -155,7 +147,6 @@ class LogoutView(APIView):
 
     permission_classes = [AllowAny]
 
-    @extend_schema(request=None, responses={204: None})
     def post(self, request):
         refresh = request.COOKIES.get(REFRESH_COOKIE)
         if refresh:

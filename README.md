@@ -6,6 +6,9 @@ in person.
 
 Stack: Django, Django REST Framework, PostgreSQL, Channels (WebSockets) and Redis.
 
+Every endpoint is documented in the [Bruno](https://www.usebruno.com/) collection in
+[`apis/`](apis/): open that folder in Bruno and pick the **Local** environment.
+
 ## Run it
 
 ```bash
@@ -15,7 +18,6 @@ docker compose exec web python manage.py seed_meetup_locations
 docker compose exec web python manage.py createsuperuser
 ```
 
-- API docs: http://localhost:8000/api/docs/
 - Admin: http://localhost:8000/admin/
 - Emails (verification, password reset) are printed in `docker compose logs web`.
 
@@ -29,6 +31,7 @@ ruff check . && ruff format --check .
 ## Layout
 
 ```
+apis/            Bruno collection: every endpoint with an example and its docs
 config/          settings, URLs, ASGI routing
 apps/core/       shared base model, pagination, health check
 apps/accounts/   users, sign-up, email verification, cookie login
@@ -51,8 +54,6 @@ tests/
 - **Chat.** Connect to `ws://<host>/ws/chat/<conversation_id>/` or `ws://<host>/ws/inbox/`.
   The access cookie signs you in. Messages are JSON objects like
   `{"type": "message", "body": "..."}`.
-
-The full API is in the Swagger docs.
 
 ## Production
 

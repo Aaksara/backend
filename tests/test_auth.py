@@ -43,9 +43,12 @@ def test_register_accepts_subdomain(client_for):
     assert resp.status_code == 201
 
 
-def test_register_rejects_duplicate_case_insensitive(client_for, make_user):
+def test_register_rejects_duplicates_case_insensitive(client_for, make_user):
     make_user(email="dup@university.edu")
-    assert _register(client_for(), email="DUP@university.edu").status_code == 400
+    for email in ("dup@university.edu", "DUP@university.edu"):
+        resp = _register(client_for(), email=email)
+        assert resp.status_code == 400
+        assert resp.data["email"] == ["An account with this email already exists."]
 
 
 def test_full_signup_verify_login_flow(client_for):

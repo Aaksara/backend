@@ -1,0 +1,28 @@
+meta {
+  name: Lookup by ISBN
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/books/lookup/?isbn=9780132350884
+  body: none
+  auth: none
+}
+
+params:query {
+  isbn: 9780132350884
+}
+
+script:post-response {
+  if (res.status < 300) bru.setVar("bookId", res.body.id);
+}
+
+docs {
+  Finds a book by ISBN-10 or ISBN-13 (hyphens allowed). Unknown ISBNs are imported from
+  Open Library, then Google Books. Use the returned `id` as `book_id` when creating a listing.
+
+  - `200` the book
+  - `400 {"isbn": ["'123' is not a valid ISBN-10 or ISBN-13."]}`
+  - `404` not found anywhere: add it with **Create book**
+}

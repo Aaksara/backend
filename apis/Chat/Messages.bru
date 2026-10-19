@@ -1,0 +1,18 @@
+meta {
+  name: Messages
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/conversations/{{conversationId}}/messages/
+  body: none
+  auth: none
+}
+
+docs {
+  Message history, newest first.
+
+  Paginated: `?page=` and `?page_size=` (max 100). Response:
+  `{ "count": n, "next": url|null, "previous": url|null, "results": [...] }`
+}

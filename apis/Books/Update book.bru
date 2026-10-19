@@ -1,0 +1,24 @@
+meta {
+  name: Update book
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/api/books/{{bookId}}/
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "edition": "3rd"
+  }
+}
+
+docs {
+  Staff only. Fixes catalogue details.
+
+  - `200` the book
+  - `403` not staff
+}

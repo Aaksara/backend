@@ -1,6 +1,5 @@
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -34,8 +33,6 @@ class ExchangeRequestViewSet(
     ordering_fields = ["created_at", "meetup_time"]
 
     def get_queryset(self):
-        if getattr(self, "swagger_fake_view", False):
-            return ExchangeRequest.objects.none()
         user = self.request.user
         return (
             ExchangeRequest.objects.filter(Q(requester=user) | Q(listing__seller=user))
@@ -66,7 +63,6 @@ class ExchangeRequestViewSet(
         exchange = self.get_queryset().get(pk=exchange.pk)
         return Response(self.get_serializer(exchange).data)
 
-    @extend_schema(request=AcceptExchangeSerializer, responses=ExchangeRequestSerializer)
     @action(detail=True, methods=["post"])
     def accept(self, request, pk=None):
         serializer = AcceptExchangeSerializer(data=request.data)
@@ -74,17 +70,14 @@ class ExchangeRequestViewSet(
         exchange = services.accept(self.get_object().pk, request.user, **serializer.validated_data)
         return self._respond(exchange)
 
-    @extend_schema(request=None, responses=ExchangeRequestSerializer)
     @action(detail=True, methods=["post"])
     def reject(self, request, pk=None):
         return self._respond(services.reject(self.get_object().pk, request.user))
 
-    @extend_schema(request=None, responses=ExchangeRequestSerializer)
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
         return self._respond(services.cancel(self.get_object().pk, request.user))
 
-    @extend_schema(request=None, responses=ExchangeRequestSerializer)
     @action(detail=True, methods=["post"])
     def complete(self, request, pk=None):
         return self._respond(services.complete(self.get_object().pk, request.user))

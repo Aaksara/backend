@@ -1,0 +1,16 @@
+meta {
+  name: Get listing
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/listings/{{listingId}}/
+  body: none
+  auth: none
+}
+
+docs {
+  - `200` the listing
+  - `404`
+}

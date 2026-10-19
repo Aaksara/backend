@@ -1,0 +1,20 @@
+meta {
+  name: Meetup locations
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/meetup-locations/
+  body: none
+  auth: none
+}
+
+script:post-response {
+  if (res.status < 300) bru.setVar("locationId", res.body[0].id);
+}
+
+docs {
+  Active on-campus hand-over spots: `[{"id", "name", "description"}]` (not paginated).
+  Optional `search`.
+}

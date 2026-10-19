@@ -1,5 +1,4 @@
 from django.db.models import Count, Q
-from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -21,8 +20,6 @@ class ConversationViewSet(
     filterset_fields = ["listing"]
 
     def get_queryset(self):
-        if getattr(self, "swagger_fake_view", False):
-            return Conversation.objects.none()
         user = self.request.user
         unread = Q(messages__read_at__isnull=True) & ~Q(messages__sender=user)
         return (
@@ -42,8 +39,6 @@ class ConversationViewSet(
         data = self.get_serializer(self.get_queryset().get(pk=conversation.pk)).data
         return Response(data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
-    @extend_schema(methods=["GET"], responses=MessageSerializer(many=True))
-    @extend_schema(methods=["POST"], request=MessageSerializer, responses=MessageSerializer)
     @action(detail=True, methods=["get", "post"], serializer_class=MessageSerializer)
     def messages(self, request, pk=None):
         """GET: message history, newest first. POST: send a message."""
@@ -59,7 +54,6 @@ class ConversationViewSet(
         page = self.paginate_queryset(conversation.messages.all())
         return self.get_paginated_response(MessageSerializer(page, many=True).data)
 
-    @extend_schema(request=None, responses={200: dict})
     @action(detail=True, methods=["post"])
     def read(self, request, pk=None):
         """Mark the other participant's messages as read."""

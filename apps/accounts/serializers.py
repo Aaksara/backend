@@ -29,6 +29,8 @@ class RegisterSerializer(serializers.ModelSerializer):
         model = User
         fields = ["id", "email", "full_name", "student_id", "department", "phone", "password"]
         read_only_fields = ["id"]
+        # validate_email does a case-insensitive uniqueness check instead.
+        extra_kwargs = {"email": {"validators": []}}
 
     def validate_email(self, value):
         value = value.lower().strip()

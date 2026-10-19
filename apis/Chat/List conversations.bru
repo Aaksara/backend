@@ -1,0 +1,18 @@
+meta {
+  name: List conversations
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/conversations/
+  body: none
+  auth: none
+}
+
+docs {
+  Your conversations, most recently active first. Optional `listing` filter.
+
+  Paginated: `?page=` and `?page_size=` (max 100). Response:
+  `{ "count": n, "next": url|null, "previous": url|null, "results": [...] }`
+}
