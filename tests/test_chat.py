@@ -52,10 +52,10 @@ class TestConversationAPI:
 
 
 def _connect(path, user=None, origin=b"http://localhost:3000"):
-    protocols = ["bearer", str(AccessToken.for_user(user))] if user is not None else None
-    return WebsocketCommunicator(
-        application, path, headers=[(b"origin", origin)], subprotocols=protocols
-    )
+    headers = [(b"origin", origin)]
+    if user is not None:
+        headers.append((b"cookie", f"access_token={AccessToken.for_user(user)}".encode()))
+    return WebsocketCommunicator(application, path, headers=headers)
 
 
 @pytest.fixture
@@ -80,12 +80,6 @@ class TestChatWebSocket:
         comm = _connect(f"/ws/chat/{conversation.id}/", buyer, origin=b"https://evil.example")
         connected, _ = await comm.connect()
         assert not connected
-
-    async def test_accepts_bearer_subprotocol(self, conversation, buyer):
-        comm = _connect(f"/ws/chat/{conversation.id}/", buyer)
-        connected, subprotocol = await comm.connect()
-        assert connected and subprotocol == "bearer"
-        await comm.disconnect()
 
     async def test_rate_limits_messages(self, conversation, buyer, monkeypatch):
         monkeypatch.setattr(consumers, "MESSAGES_PER_MINUTE", 1)

@@ -127,10 +127,6 @@ class ChangePasswordSerializer(serializers.Serializer):
         return value
 
 
-class LogoutSerializer(serializers.Serializer):
-    refresh = serializers.CharField()
-
-
 class LoginSerializer(TokenObtainPairSerializer):
     """JWT login that also refuses accounts whose email is not yet verified."""
 

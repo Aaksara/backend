@@ -148,7 +148,7 @@ DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "BookX <no-reply@local
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "apps.accounts.authentication.CookieJWTAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_FILTER_BACKENDS": [
@@ -159,8 +159,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "apps.core.pagination.StandardPagination",
     "EXCEPTION_HANDLER": "apps.core.exceptions.exception_handler",
     "PAGE_SIZE": 20,
-    # Proxies in front of Django that append to X-Forwarded-For (the Next.js server counts).
-    # Throttling keys on the client IP; with 0 it keys on the direct peer instead.
+    # Reverse proxies in front of Django, so throttling sees the real client IP.
     "NUM_PROXIES": int(os.environ.get("NUM_PROXIES", "0")),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_THROTTLE_CLASSES": [
@@ -196,6 +195,7 @@ SPECTACULAR_SETTINGS = {
 }
 
 CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
+CORS_ALLOW_CREDENTIALS = True  # the frontend sends the auth cookies
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS", "http://localhost:3000")
 
 # --- Redis: chat channel layer and the cache behind rate limits ------------------

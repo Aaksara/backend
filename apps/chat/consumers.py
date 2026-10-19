@@ -5,7 +5,6 @@ from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.core.cache import cache
 
 from . import services
-from .middleware import accepted_subprotocol
 from .models import Conversation
 from .serializers import MessageSerializer
 
@@ -23,7 +22,7 @@ async def reject(consumer, code):
     Accepting first is required: closing during the handshake makes browsers see a
     generic failure (code 1006) instead of our code.
     """
-    await consumer.accept(subprotocol=accepted_subprotocol(consumer.scope))
+    await consumer.accept()
     await consumer.close(code=code)
 
 
@@ -55,7 +54,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
         self.group_name = services.conversation_group(conversation_id)
         await self.channel_layer.group_add(self.group_name, self.channel_name)
-        await self.accept(subprotocol=accepted_subprotocol(self.scope))
+        await self.accept()
 
     async def disconnect(self, code):
         if hasattr(self, "group_name"):
@@ -134,7 +133,7 @@ class InboxConsumer(AsyncJsonWebsocketConsumer):
 
         self.group_name = services.user_group(user.id)
         await self.channel_layer.group_add(self.group_name, self.channel_name)
-        await self.accept(subprotocol=accepted_subprotocol(self.scope))
+        await self.accept()
 
     async def disconnect(self, code):
         if hasattr(self, "group_name"):

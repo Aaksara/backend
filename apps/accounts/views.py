@@ -2,20 +2,21 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
+from rest_framework.exceptions import NotAuthenticated
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.exceptions import TokenError
-from rest_framework_simplejwt.settings import api_settings
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from .authentication import REFRESH_COOKIE, clear_auth_cookies, set_auth_cookies
 from .emails import send_password_reset_email, send_verification_email
 from .serializers import (
     ChangePasswordSerializer,
     EmailSerializer,
     LoginSerializer,
-    LogoutSerializer,
     PasswordResetConfirmSerializer,
     PublicUserSerializer,
     RegisterSerializer,
@@ -42,8 +43,39 @@ class RegisterView(generics.CreateAPIView):
 
 
 class LoginView(TokenObtainPairView):
+    """Sets the auth cookies and returns the user."""
+
     serializer_class = LoginSerializer
     throttle_scope = "auth"
+
+    @extend_schema(responses={200: UserSerializer})
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        set_auth_cookies(response, response.data["access"], response.data["refresh"])
+        response.data = response.data["user"]
+        return response
+
+
+class RefreshView(APIView):
+    """Swaps the refresh cookie for new cookies (the refresh token is rotated)."""
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(request=None, responses={204: None})
+    def post(self, request):
+        refresh = request.COOKIES.get(REFRESH_COOKIE)
+        if not refresh:
+            raise NotAuthenticated("You are not signed in.")
+        serializer = TokenRefreshSerializer(data={"refresh": refresh})
+        try:
+            serializer.is_valid(raise_exception=True)
+        except TokenError as exc:
+            raise InvalidToken(exc.args[0]) from None
+        response = Response(status=status.HTTP_204_NO_CONTENT)
+        set_auth_cookies(
+            response, serializer.validated_data["access"], serializer.validated_data["refresh"]
+        )
+        return response
 
 
 class VerifyEmailView(APIView):
@@ -119,18 +151,21 @@ class ChangePasswordView(APIView):
 
 
 class LogoutView(APIView):
-    @extend_schema(request=LogoutSerializer, responses={205: None})
+    """Revokes the refresh cookie and clears both cookies. Works even if already expired."""
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(request=None, responses={204: None})
     def post(self, request):
-        serializer = LogoutSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        try:
-            token = RefreshToken(serializer.validated_data["refresh"])
-        except TokenError:
-            return Response({"detail": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
-        if str(token.get(api_settings.USER_ID_CLAIM)) != str(request.user.pk):
-            return Response({"detail": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
-        token.blacklist()
-        return Response(status=status.HTTP_205_RESET_CONTENT)
+        refresh = request.COOKIES.get(REFRESH_COOKIE)
+        if refresh:
+            try:
+                RefreshToken(refresh).blacklist()
+            except TokenError:
+                pass  # Already expired or revoked: nothing to do.
+        response = Response(status=status.HTTP_204_NO_CONTENT)
+        clear_auth_cookies(response)
+        return response
 
 
 class MeView(generics.RetrieveUpdateAPIView):
