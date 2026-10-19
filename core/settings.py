@@ -30,6 +30,10 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY") or (DEV_SECRET_KEY if DEBUG els
 if not SECRET_KEY:
     raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set when DJANGO_DEBUG is off.")
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
+# On Vercel, also accept the domains Vercel gives this deployment (system variables).
+for name in ("VERCEL_URL", "VERCEL_BRANCH_URL", "VERCEL_PROJECT_PRODUCTION_URL"):
+    if os.environ.get(name):
+        ALLOWED_HOSTS.append(os.environ[name])
 
 INSTALLED_APPS = [
     "django.contrib.admin",
