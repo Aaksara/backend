@@ -49,7 +49,7 @@ def test_lookup_invalid_and_unknown(client_for, buyer, fake_lookup):
     assert client.get("/api/books/lookup/", {"isbn": "9780262033848"}).status_code == 404
 
 
-def test_manual_book_creation_normalises_isbn(client_for, buyer):
+def test_manual_book_creation_normalises_isbn(client_for, buyer, fake_lookup):
     resp = client_for(buyer).post(
         "/api/books/", {"isbn_13": "0-262-03384-4", "title": "Algorithms"}
     )
@@ -58,13 +58,19 @@ def test_manual_book_creation_normalises_isbn(client_for, buyer):
     assert resp.data["isbn_10"] == "0262033844"
 
 
-def test_manual_book_accepts_hyphenated_isbn13(client_for, buyer, book):
+def test_manual_book_accepts_hyphenated_isbn13(client_for, buyer, book, fake_lookup):
     client = client_for(buyer)
     resp = client.post("/api/books/", {"isbn_13": "978-0-13-468599-1", "title": "Effective Java"})
     assert resp.status_code == 201, resp.data
     assert resp.data["isbn_13"] == "9780134685991"
     duplicate = client.post("/api/books/", {"isbn_13": "978-0-262-03384-8", "title": "Dup"})
     assert duplicate.status_code == 400
+
+
+def test_manual_book_uses_catalogue_data_when_known(client_for, buyer, fake_lookup):
+    resp = client_for(buyer).post("/api/books/", {"isbn_13": "9780132350884", "title": "Wrong"})
+    assert resp.status_code == 201
+    assert resp.data["title"] == "Clean Code"
 
 
 def test_only_staff_can_edit_books(client_for, buyer, book, make_user):

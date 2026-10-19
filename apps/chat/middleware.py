@@ -1,9 +1,9 @@
 """Authenticate WebSocket connections with a SimpleJWT access token.
 
-Clients connect with `ws://host/ws/chat/<id>/?token=<access token>`.
+Browsers cannot set headers on a WebSocket, so the token is sent as a subprotocol:
+`new WebSocket(url, ["bearer", accessToken])`. Unlike a query string, it does not end up
+in proxy access logs.
 """
-
-from urllib.parse import parse_qs
 
 from channels.db import database_sync_to_async
 from channels.middleware import BaseMiddleware
@@ -12,6 +12,13 @@ from django.contrib.auth.models import AnonymousUser
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.tokens import AccessToken
+
+SUBPROTOCOL = "bearer"
+
+
+def accepted_subprotocol(scope):
+    """The subprotocol to echo on accept; browsers drop the socket if it is missing."""
+    return SUBPROTOCOL if SUBPROTOCOL in scope.get("subprotocols", []) else None
 
 
 @database_sync_to_async
@@ -31,7 +38,7 @@ def get_user_for_token(raw_token: str):
 
 class JWTAuthMiddleware(BaseMiddleware):
     async def __call__(self, scope, receive, send):
-        query = parse_qs(scope.get("query_string", b"").decode())
-        token = (query.get("token") or [None])[0]
+        protocols = scope.get("subprotocols", [])
+        token = protocols[1] if len(protocols) == 2 and protocols[0] == SUBPROTOCOL else None
         scope["user"] = await get_user_for_token(token) if token else AnonymousUser()
         return await super().__call__(scope, receive, send)

@@ -1,13 +1,20 @@
+import time
+
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
+from django.core.cache import cache
 
 from . import services
+from .middleware import accepted_subprotocol
 from .models import Conversation
 from .serializers import MessageSerializer
 
 # Application-defined close codes (4000-4999).
 UNAUTHENTICATED = 4401
 FORBIDDEN = 4403
+
+# Socket messages bypass DRF throttling, so they get their own per-user limit.
+MESSAGES_PER_MINUTE = 30
 
 
 async def reject(consumer, code):
@@ -16,7 +23,7 @@ async def reject(consumer, code):
     Accepting first is required: closing during the handshake makes browsers see a
     generic failure (code 1006) instead of our code.
     """
-    await consumer.accept()
+    await consumer.accept(subprotocol=accepted_subprotocol(consumer.scope))
     await consumer.close(code=code)
 
 
@@ -48,7 +55,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
         self.group_name = services.conversation_group(conversation_id)
         await self.channel_layer.group_add(self.group_name, self.channel_name)
-        await self.accept()
+        await self.accept(subprotocol=accepted_subprotocol(self.scope))
 
     async def disconnect(self, code):
         if hasattr(self, "group_name"):
@@ -66,6 +73,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             await self.send_json({"type": "error", "detail": f"Unknown type '{event_type}'."})
 
     async def _send_message(self, content):
+        if not await self._within_rate_limit():
+            await self.send_json({"type": "error", "detail": "Too many messages. Slow down."})
+            return
         serializer = MessageSerializer(data=content)
         if not serializer.is_valid():
             await self.send_json({"type": "error", "detail": serializer.errors})
@@ -83,6 +93,11 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 "is_typing": bool(content.get("is_typing", True)),
             },
         )
+
+    async def _within_rate_limit(self):
+        key = f"ws-messages:{self.user.id}:{int(time.time() // 60)}"
+        await cache.aadd(key, 0, timeout=60)
+        return await cache.aincr(key) <= MESSAGES_PER_MINUTE
 
     # Handlers for events sent to the group ----------------------------------------
 
@@ -119,7 +134,7 @@ class InboxConsumer(AsyncJsonWebsocketConsumer):
 
         self.group_name = services.user_group(user.id)
         await self.channel_layer.group_add(self.group_name, self.channel_name)
-        await self.accept()
+        await self.accept(subprotocol=accepted_subprotocol(self.scope))
 
     async def disconnect(self, code):
         if hasattr(self, "group_name"):

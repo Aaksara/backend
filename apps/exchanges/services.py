@@ -53,6 +53,8 @@ def accept(exchange_id, user, meetup_location, meetup_time):
     offered = exchange.offered_listing
     if offered is not None and offered.status != Listing.Status.AVAILABLE:
         raise ValidationError("The book offered in exchange is no longer available.")
+    if offered is None and exchange.listing.listing_type == Listing.ListingType.EXCHANGE:
+        raise ValidationError("The book offered in exchange no longer exists.")
 
     exchange.status = Status.ACCEPTED
     exchange.meetup_location = meetup_location
@@ -114,7 +116,19 @@ def complete(exchange_id, user):
         _set_listing_status(listing, Listing.Status.COMPLETED)
 
     # Other pending requests that ask for, or offer, a traded book can never happen now.
+    now = timezone.now()
     ExchangeRequest.objects.filter(
         Q(listing__in=traded) | Q(offered_listing__in=traded), status=Status.PENDING
-    ).update(status=Status.REJECTED, responded_at=timezone.now())
+    ).update(status=Status.REJECTED, responded_at=now, updated_at=now)
     return exchange
+
+
+def close_pending_requests(listing):
+    """A withdrawn listing can no longer be traded, so settle the requests waiting on it."""
+    now = timezone.now()
+    ExchangeRequest.objects.filter(listing=listing, status=Status.PENDING).update(
+        status=Status.REJECTED, responded_at=now, updated_at=now
+    )
+    ExchangeRequest.objects.filter(offered_listing=listing, status=Status.PENDING).update(
+        status=Status.CANCELLED, updated_at=now
+    )

@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -33,7 +34,9 @@ class RegisterView(generics.CreateAPIView):
     permission_classes = [AllowAny]
     throttle_scope = "auth"
 
+    @transaction.atomic
     def perform_create(self, serializer):
+        # If the email cannot be sent, roll back so the student can simply register again.
         user = serializer.save()
         send_verification_email(user)
 

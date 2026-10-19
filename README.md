@@ -96,15 +96,32 @@ All endpoints are under `/api/` and require `Authorization: Bearer <access>` unl
 
 ## Real-time chat (WebSocket)
 
-Connect with the JWT access token in the query string:
+Connect with the JWT access token as the `bearer` subprotocol, from an origin listed in
+`CORS_ALLOWED_ORIGINS`:
 
-```
-ws://localhost:8000/ws/chat/<conversation_id>/?token=<access>
-ws://localhost:8000/ws/inbox/?token=<access>      # new-message feed for badges
+```js
+new WebSocket("ws://localhost:8000/ws/chat/<conversation_id>/", ["bearer", access]);
+new WebSocket("ws://localhost:8000/ws/inbox/", ["bearer", access]); // new-message feed
 ```
 
 Client → server: `{"type":"message","body":"..."}`, `{"type":"typing","is_typing":true}`, `{"type":"read"}`
 Server → client: `{"type":"message","message":{...}}`, `{"type":"typing",...}`, `{"type":"read",...}`, `{"type":"error",...}`
 
 Messages sent via `POST conversations/{id}/messages/` are broadcast to sockets too.
-Missing/expired tokens are closed with code 4401, non-participants with 4403.
+Missing/expired tokens are closed with code 4401, non-participants with 4403. Sockets
+allow 30 messages per user per minute.
+
+## Production
+
+- Set `DJANGO_DEBUG=false`, a long random `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`,
+  `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS`/`CSRF_TRUSTED_ORIGINS` and an SMTP `EMAIL_*` setup.
+- Set `REDIS_URL`: chat fan-out and rate limits must be shared between processes.
+- Set `NUM_PROXIES` to the number of proxies in front of Django that append to
+  `X-Forwarded-For` (browser → TLS proxy → Next.js → Django is `1`). Otherwise every
+  request appears to come from the proxy and shares one rate limit.
+- Terminate TLS at a reverse proxy and turn on `SECURE_SSL_REDIRECT` / `SECURE_HSTS_SECONDS`.
+- Static files are served by WhiteNoise. Uploaded media (`/media/`) is not served when
+  `DEBUG` is off: point the reverse proxy at the `media` volume.
+- Migrations run on container start; set `RUN_MIGRATIONS=0` on all but one replica.
+
+Frontend developers: see [docs/FRONTEND_INTEGRATION.md](docs/FRONTEND_INTEGRATION.md).

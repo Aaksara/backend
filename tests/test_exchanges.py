@@ -158,7 +158,36 @@ def test_exchanges_are_private_and_filterable(client_for, seller, buyer, make_us
 
 def test_cannot_hard_delete_listing_with_history(client_for, seller, buyer, make_listing):
     listing = make_listing(seller)
-    _request(client_for(buyer), listing)
+    exchange_id = _request(client_for(buyer), listing).data["id"]
     assert client_for(seller).delete(f"/api/listings/{listing.id}/").status_code == 204
     listing.refresh_from_db()
     assert listing.status == Listing.Status.WITHDRAWN
+    assert ExchangeRequest.objects.get(pk=exchange_id).status == "rejected"
+
+
+def test_deleting_an_offered_listing_cancels_the_swap(
+    client_for, seller, buyer, make_listing, other_book
+):
+    wanted = make_listing(seller, listing_type="exchange", price=None)
+    offered = make_listing(buyer, book=other_book)
+    exchange_id = _request(client_for(buyer), wanted, offered_listing=offered.id).data["id"]
+    assert client_for(buyer).delete(f"/api/listings/{offered.id}/").status_code == 204
+    offered.refresh_from_db()
+    assert offered.status == Listing.Status.WITHDRAWN
+    exchange = ExchangeRequest.objects.get(pk=exchange_id)
+    assert exchange.status == "cancelled" and exchange.offered_listing_id == offered.id
+
+
+def test_withdrawing_a_listing_rejects_pending_requests(client_for, seller, buyer, make_listing):
+    listing = make_listing(seller)
+    exchange_id = _request(client_for(buyer), listing).data["id"]
+    resp = client_for(seller).patch(f"/api/listings/{listing.id}/", {"status": "withdrawn"})
+    assert resp.status_code == 200
+    assert ExchangeRequest.objects.get(pk=exchange_id).status == "rejected"
+
+
+def test_completed_listing_cannot_be_deleted(client_for, seller, make_listing):
+    listing = make_listing(seller, status=Listing.Status.COMPLETED)
+    assert client_for(seller).delete(f"/api/listings/{listing.id}/").status_code == 400
+    listing.refresh_from_db()
+    assert listing.status == Listing.Status.COMPLETED

@@ -130,7 +130,9 @@ class ListingSerializer(serializers.ModelSerializer):
         price = attrs.get("price", getattr(self.instance, "price", None))
 
         if listing_type == Listing.ListingType.SELL and not price:
-            raise serializers.ValidationError({"price": "A selling price is required."})
+            raise serializers.ValidationError(
+                {"price": "A selling price above 0 is required. List free books as donations."}
+            )
         if listing_type == Listing.ListingType.DONATE:
             attrs["price"] = None
         return attrs

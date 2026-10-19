@@ -3,6 +3,7 @@ from channels.db import database_sync_to_async
 from channels.testing import WebsocketCommunicator
 from rest_framework_simplejwt.tokens import AccessToken
 
+from apps.chat import consumers
 from apps.chat.models import Conversation, Message
 from config.asgi import application
 
@@ -50,10 +51,11 @@ class TestConversationAPI:
         assert outsider.get(f"/api/conversations/{conv_id}/messages/").status_code == 404
 
 
-def _connect(path, user=None):
-    if user is not None:
-        path += f"?token={AccessToken.for_user(user)}"
-    return WebsocketCommunicator(application, path, headers=[(b"origin", b"http://localhost")])
+def _connect(path, user=None, origin=b"http://localhost:3000"):
+    protocols = ["bearer", str(AccessToken.for_user(user))] if user is not None else None
+    return WebsocketCommunicator(
+        application, path, headers=[(b"origin", origin)], subprotocols=protocols
+    )
 
 
 @pytest.fixture
@@ -73,6 +75,28 @@ class TestChatWebSocket:
         comm = _connect(f"/ws/chat/{conversation.id}/", outsider)
         await comm.connect()
         assert await comm.receive_output() == {"type": "websocket.close", "code": 4403}
+
+    async def test_rejects_unknown_origin(self, conversation, buyer):
+        comm = _connect(f"/ws/chat/{conversation.id}/", buyer, origin=b"https://evil.example")
+        connected, _ = await comm.connect()
+        assert not connected
+
+    async def test_accepts_bearer_subprotocol(self, conversation, buyer):
+        comm = _connect(f"/ws/chat/{conversation.id}/", buyer)
+        connected, subprotocol = await comm.connect()
+        assert connected and subprotocol == "bearer"
+        await comm.disconnect()
+
+    async def test_rate_limits_messages(self, conversation, buyer, monkeypatch):
+        monkeypatch.setattr(consumers, "MESSAGES_PER_MINUTE", 1)
+        comm = _connect(f"/ws/chat/{conversation.id}/", buyer)
+        await comm.connect()
+        await comm.send_json_to({"type": "message", "body": "one"})
+        assert (await comm.receive_json_from())["type"] == "message"
+        await comm.send_json_to({"type": "message", "body": "two"})
+        assert (await comm.receive_json_from())["type"] == "error"
+        assert await database_sync_to_async(Message.objects.count)() == 1
+        await comm.disconnect()
 
     async def test_realtime_message_typing_and_read(self, conversation, buyer, seller):
         buyer_ws = _connect(f"/ws/chat/{conversation.id}/", buyer)

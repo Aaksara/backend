@@ -1,7 +1,9 @@
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from . import services
@@ -49,7 +51,15 @@ class ExchangeRequestViewSet(
         )
 
     def perform_create(self, serializer):
-        serializer.save(requester=self.request.user)
+        # The serializer checks for an active request, but two concurrent posts can both
+        # pass that check; the database constraint is the final word.
+        try:
+            with transaction.atomic():
+                serializer.save(requester=self.request.user)
+        except IntegrityError:
+            raise ValidationError(
+                {"listing": "You already have an active request for this listing."}
+            ) from None
 
     def _respond(self, exchange):
         """Serialize a freshly transitioned exchange with all related data loaded."""
