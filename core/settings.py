@@ -32,7 +32,6 @@ if not SECRET_KEY:
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 
 INSTALLED_APPS = [
-    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -44,7 +43,6 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "django_filters",
     "corsheaders",
-    "channels",
     # Local
     "accounts",
     "books",
@@ -81,12 +79,13 @@ TEMPLATES = [
     },
 ]
 
-ASGI_APPLICATION = "core.asgi.application"
+WSGI_APPLICATION = "core.wsgi.application"
 
+# Production: the Prisma Postgres direct URL (postgres://...?sslmode=require).
 DATABASES = {
     "default": dj_database_url.config(
         default="postgres://aksara:aksara@localhost:5434/aksara",
-        # Persistent connections leak under ASGI; put PgBouncer in front for pooling.
+        # Serverless functions are short-lived, so open one connection per request.
         conn_max_age=0,
     )
 }
@@ -105,14 +104,27 @@ TIME_ZONE = os.environ.get("TIME_ZONE", "UTC")
 USE_I18N = True
 USE_TZ = True
 
+# Admin static files are served by WhiteNoise straight from the installed apps,
+# so no collectstatic step is needed on Vercel.
 STATIC_URL = "static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
-MEDIA_URL = "media/"
-MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
+WHITENOISE_USE_FINDERS = True
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
+
+# Uploaded images. Vercel's disk is wiped between requests, so production uses an
+# S3-compatible bucket (AWS S3, Cloudflare R2, ...). Locally they go to MEDIA_ROOT.
+MEDIA_URL = "media/"
+MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
+if os.environ.get("AWS_STORAGE_BUCKET_NAME"):
+    STORAGES["default"] = {"BACKEND": "storages.backends.s3.S3Storage"}
+    AWS_STORAGE_BUCKET_NAME = os.environ["AWS_STORAGE_BUCKET_NAME"]
+    AWS_S3_ENDPOINT_URL = os.environ.get("AWS_S3_ENDPOINT_URL") or None
+    AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME") or None
+    AWS_S3_SIGNATURE_VERSION = "s3v4"
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_QUERYSTRING_EXPIRE = 6 * 60 * 60  # signed image links last 6 hours
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -125,10 +137,11 @@ UNIVERSITY_EMAIL_DOMAINS = env_list("UNIVERSITY_EMAIL_DOMAINS", "university.edu"
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000").rstrip("/")
 
 # External ISBN metadata lookup.
-ISBN_LOOKUP_TIMEOUT = float(os.environ.get("ISBN_LOOKUP_TIMEOUT", "5"))
+ISBN_LOOKUP_TIMEOUT = float(os.environ.get("ISBN_LOOKUP_TIMEOUT", "4"))
 
 MAX_LISTING_IMAGES = 5
-MAX_IMAGE_UPLOAD_BYTES = 5 * 1024 * 1024
+# Vercel rejects request bodies over 4.5 MB.
+MAX_IMAGE_UPLOAD_BYTES = 4 * 1024 * 1024
 
 # --- Email ---------------------------------------------------------------------
 
@@ -181,32 +194,23 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS", "http://localhost:3000")
 
-# --- Redis: chat channel layer and the cache behind rate limits ------------------
+# --- Cache behind rate limits ------------------------------------------------------
 
-REDIS_URL = os.environ.get("REDIS_URL")
-if REDIS_URL:
-    CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels_redis.core.RedisChannelLayer",
-            "CONFIG": {"hosts": [REDIS_URL]},
-        }
-    }
+# Each serverless instance has its own memory, so production rate limits need a shared
+# Redis (e.g. Upstash: rediss://...). Without it, each instance counts on its own.
+if os.environ.get("REDIS_URL"):
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.redis.RedisCache",
-            "LOCATION": REDIS_URL,
+            "LOCATION": os.environ["REDIS_URL"],
         }
     }
-else:
-    # Single-process only; fine for local development and tests.
-    CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 
 # --- Security (production) --------------------------------------------------------
 
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", False)
-    SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", "0"))
+    SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", str(60 * 60 * 24 * 30)))
     SESSION_COOKIE_SECURE = env_bool("SECURE_COOKIES", True)
     CSRF_COOKIE_SECURE = env_bool("SECURE_COOKIES", True)
 

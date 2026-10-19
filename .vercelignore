@@ -1,0 +1,6 @@
+tests/
+.github/
+.env
+.venv/
+media/
+staticfiles/

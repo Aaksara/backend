@@ -34,9 +34,6 @@ class Conversation(TimeStampedModel):
     def has_participant(self, user) -> bool:
         return user.id in (self.buyer_id, self.seller_id)
 
-    def other_participant_id(self, user) -> int:
-        return self.seller_id if user.id == self.buyer_id else self.buyer_id
-
 
 class Message(models.Model):
     conversation = models.ForeignKey(

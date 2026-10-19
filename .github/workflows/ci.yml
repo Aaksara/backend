@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
 
 jobs:
@@ -21,13 +21,13 @@ jobs:
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       DATABASE_URL: postgres://aksara:aksara@localhost:5432/aksara
-      DJANGO_SECRET_KEY: ci-secret
+      DJANGO_SECRET_KEY: ci-secret-key-that-is-long-enough-for-jwt-signing
       UNIVERSITY_EMAIL_DOMAINS: university.edu
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.12"  # same as Vercel
           cache: pip
       - run: pip install -r requirements-dev.txt
       - name: Lint
@@ -39,9 +39,3 @@ jobs:
       - name: Tests
         run: pytest -q
 
-  docker:
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-      - uses: actions/checkout@v4
-      - run: docker build -t aksara-backend .
