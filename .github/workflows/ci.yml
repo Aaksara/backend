@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: aksara
+          POSTGRES_PASSWORD: aksara
+          POSTGRES_DB: aksara
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U aksara"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://aksara:aksara@localhost:5432/aksara
+      DJANGO_SECRET_KEY: ci-secret-key-that-is-long-enough-for-jwt-signing
+      UNIVERSITY_EMAIL_DOMAINS: university.edu
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"  # same as Vercel
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - name: Lint
+        run: ruff check . && ruff format --check .
+      - name: Check for missing migrations
+        run: python manage.py makemigrations --check --dry-run
+      - name: Django system checks
+        run: python manage.py check --deploy --fail-level ERROR
+      - name: Tests
+        run: pytest -q
+

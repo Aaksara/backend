@@ -1,5 +1,12 @@
-node_modules
-dist
+__pycache__/
+*.py[cod]
+.venv/
+venv/
 .env
 *.log
+media/
+staticfiles/
+.pytest_cache/
+.ruff_cache/
+.coverage
 docker-compose.override.yml
