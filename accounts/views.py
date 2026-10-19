@@ -9,7 +9,7 @@ from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from .emails import send_password_reset_email, send_verification_email
+from .emails import EmailNotSent, send_password_reset_email, send_verification_email
 from .serializers import (
     ChangePasswordSerializer,
     EmailSerializer,
@@ -37,7 +37,8 @@ class RegisterView(generics.CreateAPIView):
     def perform_create(self, serializer):
         # If the email cannot be sent, roll back so the student can simply register again.
         user = serializer.save()
-        send_verification_email(user)
+        if not send_verification_email(user):
+            raise EmailNotSent()
 
 
 class LoginView(TokenObtainPairView):
