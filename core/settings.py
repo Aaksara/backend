@@ -127,6 +127,11 @@ MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
 if os.environ.get("AWS_STORAGE_BUCKET_NAME"):
     STORAGES["default"] = {"BACKEND": "storages.backends.s3.S3Storage"}
     AWS_STORAGE_BUCKET_NAME = os.environ["AWS_STORAGE_BUCKET_NAME"]
+    AWS_S3_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
+    AWS_S3_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
+    # Vercel's runtime sets AWS_SESSION_TOKEN for its own AWS account. django-storages would
+    # send it with the bucket keys above, and the bucket then refuses every request (403).
+    AWS_SESSION_TOKEN = None
     AWS_S3_ENDPOINT_URL = os.environ.get("AWS_S3_ENDPOINT_URL") or None
     AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME") or None
     AWS_S3_SIGNATURE_VERSION = "s3v4"
