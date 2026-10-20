@@ -68,11 +68,11 @@ jobs:
           DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
           # Settings require a key outside debug mode; migrate never signs anything with it.
           DJANGO_SECRET_KEY: migrate-only-not-used-for-signing
+      # Vercel builds it, as it does for git deploys: same Python tooling, and its
+      # Sensitive environment variables, which cannot be pulled here, stay on Vercel.
       - name: Deploy to Vercel
         run: |
           npm install --global vercel@62.0.0
-          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
-          vercel build --prod --token="$VERCEL_TOKEN"
-          vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+          vercel deploy --prod --yes --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
