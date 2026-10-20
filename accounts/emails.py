@@ -32,7 +32,7 @@ def _send(user, subject, message):
 def send_verification_email(user):
     token = email_verification_token.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
-    link = f"{settings.FRONTEND_URL}/auth/verify-email?uid={uid}&token={token}"
+    link = f"{settings.FRONTEND_URL}/verify-email?uid={uid}&token={token}"
     return _send(
         user,
         "Verify your AKSARA account",
@@ -45,7 +45,7 @@ def send_verification_email(user):
 def send_password_reset_email(user):
     token = default_token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
-    link = f"{settings.FRONTEND_URL}/auth/reset-password?uid={uid}&token={token}"
+    link = f"{settings.FRONTEND_URL}/reset-password?uid={uid}&token={token}"
     return _send(
         user,
         "Reset your AKSARA password",
