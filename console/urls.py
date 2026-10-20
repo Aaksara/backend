@@ -5,11 +5,11 @@ from . import views
 
 router = DefaultRouter()
 router.register("students", views.StudentViewSet, basename="admin-student")
-router.register("banners", views.BannerViewSet, basename="admin-banner")
+router.register("slides", views.SlideViewSet, basename="admin-slide")
 router.register("meetup-locations", views.MeetupLocationViewSet, basename="admin-meetup-location")
 
 urlpatterns = [
-    path("layouts/<str:platform>/", views.LayoutView.as_view(), name="admin-layout"),
+    path("home-sections/", views.HomeSectionsView.as_view(), name="admin-home-sections"),
     path("campus/", views.CampusView.as_view(), name="admin-campus"),
     *router.urls,
 ]

@@ -7,7 +7,7 @@ from PIL import Image
 
 from accounts.models import User
 from books.models import Listing
-from cms.models import Banner, LayoutRelease, PageSection
+from cms.models import HomeSection, Slide
 from exchanges.models import MeetupLocation
 
 pytestmark = pytest.mark.django_db
@@ -30,18 +30,16 @@ def _media(settings, tmp_path):
     settings.MEDIA_ROOT = tmp_path
 
 
-def png(name="banner.png", size=(1280, 480)):
+def png(name="slide.png", size=(1280, 480)):
     buffer = io.BytesIO()
     Image.new("RGB", size, "navy").save(buffer, format="PNG")
     return SimpleUploadedFile(name, buffer.getvalue(), content_type="image/png")
 
 
-def make_banner(**fields):
-    fields.setdefault("title", "Spring drive")
-    fields.setdefault("target_url", "https://akshara.app/spring")
-    fields.setdefault("placement", Banner.Placement.HERO)
+def make_slide(**fields):
+    fields.setdefault("caption", "Spring drive")
     fields.setdefault("image", png())
-    return Banner.objects.create(**fields)
+    return Slide.objects.create(**fields)
 
 
 # --- The super admin ----------------------------------------------------------------------
@@ -68,8 +66,8 @@ def test_me_tells_the_console_who_is_super_admin(admin_client, client_for, make_
     [
         "/api/admin/students/",
         "/api/admin/students/summary/",
-        "/api/admin/banners/",
-        "/api/admin/layouts/web/",
+        "/api/admin/slides/",
+        "/api/admin/home-sections/",
         "/api/admin/meetup-locations/",
         "/api/admin/campus/",
     ],
@@ -169,155 +167,114 @@ def test_export_is_csv_of_the_filtered_list_and_defuses_formulas(admin_client, m
     assert lines[1].startswith("'=HYPERLINK(1)")
 
 
-# --- Banners ------------------------------------------------------------------------------
+# --- Slides -------------------------------------------------------------------------------
 
 
-def test_create_banner_with_image(admin_client):
+def test_create_slide_with_image(admin_client):
     resp = admin_client.post(
-        "/api/admin/banners/",
-        {
-            "title": "Donate drive",
-            "target_url": "https://akshara.app/donate",
-            "placement": "hero",
-            "image": png(),
-        },
+        "/api/admin/slides/",
+        {"caption": "Donate drive", "link": "https://akshara.app/donate", "image": png()},
         format="multipart",
     )
 
     assert resp.status_code == 201
-    assert (resp.data["image_width"], resp.data["image_height"]) == (1280, 480)
-    assert resp.data["status"] == "draft"
+    assert resp.data["is_published"] is False
+    assert resp.data["image"].endswith(".png")
 
 
-def test_banner_rejects_non_web_links(admin_client):
-    resp = admin_client.post(
-        "/api/admin/banners/",
-        {"title": "x", "target_url": "javascript:alert(1)", "placement": "hero", "image": png()},
+def test_slide_link_is_optional_but_must_be_a_web_address(admin_client):
+    without = admin_client.post(
+        "/api/admin/slides/", {"caption": "x", "image": png()}, format="multipart"
+    )
+    script = admin_client.post(
+        "/api/admin/slides/",
+        {"caption": "x", "link": "javascript:alert(1)", "image": png()},
         format="multipart",
     )
-    assert resp.status_code == 400
-    assert "target_url" in resp.data
+
+    assert without.status_code == 201
+    assert script.status_code == 400
+    assert "link" in script.data
 
 
 def test_update_without_new_image_keeps_it(admin_client):
-    banner = make_banner()
+    slide = make_slide()
 
     resp = admin_client.patch(
-        f"/api/admin/banners/{banner.pk}/", {"status": "published"}, format="multipart"
+        f"/api/admin/slides/{slide.pk}/", {"is_published": True}, format="json"
     )
 
-    banner.refresh_from_db()
+    slide.refresh_from_db()
     assert resp.status_code == 200
-    assert banner.status == "published"
-    assert banner.image.storage.exists(banner.image.name)
+    assert slide.is_published is True
+    assert slide.image.storage.exists(slide.image.name)
 
 
-def test_new_banners_go_last_even_after_deletes(admin_client):
-    first, _ = make_banner(title="A", position=0), make_banner(title="B", position=1)
-    admin_client.delete(f"/api/admin/banners/{first.pk}/")
+def test_new_slides_go_last_even_after_deletes(admin_client):
+    first, _ = make_slide(caption="A", position=0), make_slide(caption="B", position=1)
+    admin_client.delete(f"/api/admin/slides/{first.pk}/")
 
     created = admin_client.post(
-        "/api/admin/banners/",
-        {"title": "C", "target_url": "https://akshara.app/c", "placement": "hero", "image": png()},
-        format="multipart",
+        "/api/admin/slides/", {"caption": "C", "image": png()}, format="multipart"
     )
 
-    assert [row["title"] for row in admin_client.get("/api/admin/banners/").data] == ["B", "C"]
+    assert [row["caption"] for row in admin_client.get("/api/admin/slides/").data] == ["B", "C"]
     assert created.data["position"] == 2
 
 
-def test_reorder_needs_every_banner_once(admin_client):
-    first, second = make_banner(title="A"), make_banner(title="B")
+def test_reorder_needs_every_slide_once(admin_client):
+    first, second = make_slide(caption="A"), make_slide(caption="B")
 
-    partial = admin_client.post("/api/admin/banners/reorder/", {"ids": [first.pk]}, format="json")
+    partial = admin_client.post("/api/admin/slides/reorder/", {"ids": [first.pk]}, format="json")
     resp = admin_client.post(
-        "/api/admin/banners/reorder/", {"ids": [second.pk, first.pk]}, format="json"
+        "/api/admin/slides/reorder/", {"ids": [second.pk, first.pk]}, format="json"
     )
 
     assert partial.status_code == 400
-    assert [row["title"] for row in resp.data] == ["B", "A"]
+    assert [row["caption"] for row in resp.data] == ["B", "A"]
 
 
-def test_public_banners_show_only_published(client_for):
-    make_banner(title="Live", status=Banner.Status.PUBLISHED)
-    make_banner(title="Draft")
+def test_public_slides_show_only_published(client_for):
+    make_slide(caption="Live", is_published=True)
+    make_slide(caption="Draft")
 
-    resp = client_for().get("/api/cms/banners/", {"placement": "hero"})
+    resp = client_for().get("/api/cms/slides/")
 
-    assert [row["title"] for row in resp.data] == ["Live"]
-
-
-# --- Page layouts -------------------------------------------------------------------------
+    assert [row["caption"] for row in resp.data] == ["Live"]
 
 
-def sections_payload(platform="web"):
-    return [
-        {
-            "kind": section.kind,
-            "display_title": section.display_title,
-            "anchor_id": section.anchor_id,
-            "is_enabled": section.is_enabled,
-            "variant": section.variant,
-        }
-        for section in PageSection.objects.filter(platform=platform)
-    ]
+# --- Home page sections -------------------------------------------------------------------
 
 
-def test_layout_starts_from_the_seeded_home_page(admin_client):
-    resp = admin_client.get("/api/admin/layouts/web/")
+def test_home_sections_start_in_the_home_page_order(admin_client):
+    resp = admin_client.get("/api/admin/home-sections/")
 
-    assert resp.data["version"] == 1
-    assert resp.data["sections"][0]["kind"] == "header"
+    assert [row["kind"] for row in resp.data] == HomeSection.Kind.values
+    assert all(row["is_enabled"] for row in resp.data)
 
 
-def test_publish_reorders_and_bumps_the_version(admin_client, super_admin):
-    sections = sections_payload()
+def test_save_reorders_and_hides_sections(admin_client, client_for):
+    sections = [{"kind": kind, "is_enabled": kind != "safety"} for kind in HomeSection.Kind.values]
     sections.reverse()
 
-    resp = admin_client.put(
-        "/api/admin/layouts/web/", {"base_version": 1, "sections": sections}, format="json"
-    )
+    saved = admin_client.put("/api/admin/home-sections/", {"sections": sections}, format="json")
+    public = client_for().get("/api/cms/home-sections/")
 
-    assert resp.status_code == 200
-    assert resp.data["version"] == 2
-    assert resp.data["published_by"] == "Ada Admin"
-    assert resp.data["sections"][0]["kind"] == "footer"
-    assert LayoutRelease.objects.filter(platform="mobile").get().version == 1
+    assert saved.status_code == 200
+    assert saved.data[0]["kind"] == "call_to_action"
+    assert public.data == ["call_to_action", "listing_types", "how_it_works", "hero"]
 
 
-def test_publish_refuses_a_stale_draft(admin_client):
-    body = {"base_version": 1, "sections": sections_payload()}
-    admin_client.put("/api/admin/layouts/web/", body, format="json")
+@pytest.mark.parametrize(
+    "kinds",
+    [["hero", "safety"], [*HomeSection.Kind.values, "hero"], [*HomeSection.Kind.values[1:], "x"]],
+)
+def test_save_needs_every_section_once(admin_client, kinds):
+    sections = [{"kind": kind, "is_enabled": True} for kind in kinds]
 
-    stale = admin_client.put("/api/admin/layouts/web/", body, format="json")
-
-    assert stale.status_code == 409
-
-
-def test_publish_refuses_repeated_anchors(admin_client):
-    sections = sections_payload()
-    sections[1]["anchor_id"] = sections[0]["anchor_id"]
-
-    resp = admin_client.put(
-        "/api/admin/layouts/web/", {"base_version": 1, "sections": sections}, format="json"
-    )
+    resp = admin_client.put("/api/admin/home-sections/", {"sections": sections}, format="json")
 
     assert resp.status_code == 400
-    assert "sections" in resp.data
-
-
-def test_unknown_platform_is_not_found(admin_client, client_for):
-    assert admin_client.get("/api/admin/layouts/tv/").status_code == 404
-    assert client_for().get("/api/cms/layouts/tv/").status_code == 404
-
-
-def test_public_layout_hides_disabled_sections(client_for):
-    PageSection.objects.filter(platform="web", kind="safety").update(is_enabled=False)
-
-    kinds = [row["kind"] for row in client_for().get("/api/cms/layouts/web/").data]
-
-    assert "safety" not in kinds
-    assert kinds[0] == "header"
 
 
 # --- Campus -------------------------------------------------------------------------------

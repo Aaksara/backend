@@ -44,7 +44,7 @@ accounts/    users, sign-up, email verification, JWT login
 books/       books (ISBN lookup) and listings
 exchanges/   exchange requests and meetup locations
 chat/        conversations and messages
-cms/         storefront content: banners and home-page sections, plus their public read API
+cms/         storefront content: home page slides and sections, plus their public read API
 console/     the admin console's API under /api/admin/, for the super admin only
 utilities/   shared code: base model, pagination, permissions, error handler, health check
 tests/
@@ -64,10 +64,10 @@ vercel.json  runs core/wsgi.py on Vercel's Python runtime
   sign in through the normal login, and `GET /api/auth/me/` returns `is_superuser: true`.
   Everything under `/api/admin/` refuses anyone else (`utilities.permission.IsSuperAdmin`).
   `createsuperuser` refuses to create a second super admin; use `changepassword` instead.
-- **Storefront content.** Banners and the order of the home page's sections are edited in
-  the console. `GET /api/cms/banners/` and `GET /api/cms/layouts/<web|mobile>/` serve the
-  published ones without sign-in. Each layout publish is a numbered release, and a publish
-  based on an old version is refused with `409`.
+- **Storefront content.** The console edits the home page's hero slides and which of its
+  sections show, in what order. The storefront reads them without sign-in from
+  `GET /api/cms/slides/` (published slides) and `GET /api/cms/home-sections/` (visible
+  section kinds, top to bottom).
 - **Chat** is plain REST. The app polls `GET /api/conversations/` (unread counts) and
   `GET /api/conversations/{id}/messages/` for new messages.
 

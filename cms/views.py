@@ -1,31 +1,27 @@
 from rest_framework import generics
-from rest_framework.exceptions import NotFound
 from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from .models import Banner, PageSection, Platform
-from .serializers import PublicBannerSerializer, PublicPageSectionSerializer
-
-
-class PublishedBannerList(generics.ListAPIView):
-    """Published banners in display order. Filter with `?placement=hero`."""
-
-    serializer_class = PublicBannerSerializer
-    permission_classes = [AllowAny]
-    pagination_class = None
-    filterset_fields = ["placement"]
-    queryset = Banner.objects.filter(status=Banner.Status.PUBLISHED)
+from .models import HomeSection, Slide
+from .serializers import PublicSlideSerializer
 
 
-class LivePageSectionList(generics.ListAPIView):
-    """The visible sections of a platform's home page, top to bottom."""
+class PublishedSlideList(generics.ListAPIView):
+    """The home page's published slides, in display order."""
 
-    serializer_class = PublicPageSectionSerializer
+    serializer_class = PublicSlideSerializer
     permission_classes = [AllowAny]
     pagination_class = None
     filter_backends = []
+    queryset = Slide.objects.filter(is_published=True)
 
-    def get_queryset(self):
-        platform = self.kwargs["platform"]
-        if platform not in Platform.values:
-            raise NotFound(f"Unknown platform. Use one of: {', '.join(Platform.values)}.")
-        return PageSection.objects.filter(platform=platform, is_enabled=True)
+
+class VisibleHomeSectionList(APIView):
+    """The kinds of the home page's visible sections, top to bottom, e.g. ["hero", ...]."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        kinds = HomeSection.objects.filter(is_enabled=True).values_list("kind", flat=True)
+        return Response(list(kinds))

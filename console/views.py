@@ -8,7 +8,7 @@ from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -17,7 +17,7 @@ from accounts.emails import EmailNotSent, send_verification_email
 from accounts.tokens import revoke_refresh_tokens
 from books.models import Listing
 from cms import services as cms_services
-from cms.models import Banner, PageSection, Platform
+from cms.models import HomeSection, Slide
 from exchanges.models import ExchangeRequest, MeetupLocation
 from utilities.permission import IsSuperAdmin
 
@@ -120,22 +120,22 @@ class StudentViewSet(SuperAdminMixin, viewsets.ReadOnlyModelViewSet):
         return Response({"detail": f"Verification email sent to {student.email}."})
 
 
-class BannerViewSet(SuperAdminMixin, viewsets.ModelViewSet):
-    queryset = Banner.objects.all()
-    serializer_class = serializers.BannerSerializer
+class SlideViewSet(SuperAdminMixin, viewsets.ModelViewSet):
+    queryset = Slide.objects.all()
+    serializer_class = serializers.SlideSerializer
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     pagination_class = None
     filter_backends = []
 
     def perform_create(self, serializer):
-        # New banners go last, so they never jump ahead of ones already ordered.
-        last = Banner.objects.aggregate(last=Max("position"))["last"]
+        # New slides go last, so they never jump ahead of ones already ordered.
+        last = Slide.objects.aggregate(last=Max("position"))["last"]
         serializer.save(position=0 if last is None else last + 1)
 
     def perform_update(self, serializer):
         old_image = serializer.instance.image
-        banner = serializer.save()
-        if "image" in serializer.validated_data and old_image.name != banner.image.name:
+        slide = serializer.save()
+        if "image" in serializer.validated_data and old_image.name != slide.image.name:
             old_image.delete(save=False)
 
     def perform_destroy(self, instance):
@@ -146,48 +146,25 @@ class BannerViewSet(SuperAdminMixin, viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"])
     def reorder(self, request):
-        """Saves the display order. Send `{"ids": [...]}` with every banner id."""
-        serializer = serializers.BannerOrderSerializer(data=request.data)
+        """Saves the display order. Send `{"ids": [...]}` with every slide id."""
+        serializer = serializers.SlideOrderSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        cms_services.reorder_banners(serializer.validated_data["ids"])
+        cms_services.reorder_slides(serializer.validated_data["ids"])
         return Response(self.get_serializer(self.get_queryset(), many=True).data)
 
 
-class LayoutView(SuperAdminMixin, APIView):
-    """GET the live page sections of a platform; PUT a full list to publish a new version."""
+class HomeSectionsView(SuperAdminMixin, APIView):
+    """GET every home page section in order; PUT the full list to change order and visibility."""
 
-    def _platform(self):
-        platform = self.kwargs["platform"]
-        if platform not in Platform.values:
-            raise NotFound(f"Unknown platform. Use one of: {', '.join(Platform.values)}.")
-        return platform
+    def get(self, request):
+        sections = HomeSection.objects.all()
+        return Response(serializers.HomeSectionSerializer(sections, many=True).data)
 
-    def _layout(self, platform):
-        release = cms_services.live_release(platform)
-        publisher = release.published_by if release else None
-        data = {
-            "platform": platform,
-            "version": release.version if release else 0,
-            "published_at": release.published_at if release else None,
-            "published_by": publisher.full_name if publisher else None,
-            "sections": PageSection.objects.filter(platform=platform),
-        }
-        return Response(serializers.LayoutSerializer(data).data)
-
-    def get(self, request, platform):
-        return self._layout(self._platform())
-
-    def put(self, request, platform):
-        platform = self._platform()
-        serializer = serializers.LayoutPublishSerializer(data=request.data)
+    def put(self, request):
+        serializer = serializers.HomeSectionsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        cms_services.publish_layout(
-            platform,
-            serializer.validated_data["sections"],
-            serializer.validated_data["base_version"],
-            request.user,
-        )
-        return self._layout(platform)
+        cms_services.save_home_sections(serializer.validated_data["sections"])
+        return self.get(request)
 
 
 class MeetupLocationViewSet(
