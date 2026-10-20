@@ -12,6 +12,8 @@ urlpatterns = [
     path("api/", include("books.urls")),
     path("api/", include("exchanges.urls")),
     path("api/", include("chat.urls")),
+    path("api/cms/", include("cms.urls")),
+    path("api/admin/", include("console.urls")),
 ]
 
 if settings.DEBUG:

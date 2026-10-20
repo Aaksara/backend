@@ -36,6 +36,8 @@ for name in ("VERCEL_URL", "VERCEL_BRANCH_URL", "VERCEL_PROJECT_PRODUCTION_URL")
         ALLOWED_HOSTS.append(os.environ[name])
 
 INSTALLED_APPS = [
+    # First, so its createsuperuser (which allows a single super admin) replaces Django's.
+    "accounts",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -48,10 +50,11 @@ INSTALLED_APPS = [
     "django_filters",
     "corsheaders",
     # Local
-    "accounts",
     "books",
     "exchanges",
     "chat",
+    "cms",
+    "console",
 ]
 
 MIDDLEWARE = [

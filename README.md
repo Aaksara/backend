@@ -44,6 +44,8 @@ accounts/    users, sign-up, email verification, JWT login
 books/       books (ISBN lookup) and listings
 exchanges/   exchange requests and meetup locations
 chat/        conversations and messages
+cms/         storefront content: banners and home-page sections, plus their public read API
+console/     the admin console's API under /api/admin/, for the super admin only
 utilities/   shared code: base model, pagination, permissions, error handler, health check
 tests/
 vercel.json  runs core/wsgi.py on Vercel's Python runtime
@@ -58,6 +60,14 @@ vercel.json  runs core/wsgi.py on Vercel's Python runtime
   `reserved` to `completed`, or to `withdrawn`.
 - **Exchanges** go from `pending` to `accepted` to `completed`, or end as `rejected` or
   `cancelled`. Accepting reserves the book(s), and completing closes the other requests.
+- **Admin console.** One super admin runs the platform from the frontend's `/admin`. They
+  sign in through the normal login, and `GET /api/auth/me/` returns `is_superuser: true`.
+  Everything under `/api/admin/` refuses anyone else (`utilities.permission.IsSuperAdmin`).
+  `createsuperuser` refuses to create a second super admin; use `changepassword` instead.
+- **Storefront content.** Banners and the order of the home page's sections are edited in
+  the console. `GET /api/cms/banners/` and `GET /api/cms/layouts/<web|mobile>/` serve the
+  published ones without sign-in. Each layout publish is a numbered release, and a publish
+  based on an old version is refused with `409`.
 - **Chat** is plain REST. The app polls `GET /api/conversations/` (unread counts) and
   `GET /api/conversations/{id}/messages/` for new messages.
 
@@ -94,7 +104,14 @@ vercel.json  runs core/wsgi.py on Vercel's Python runtime
    DATABASE_URL='<prisma direct url>' python manage.py migrate
    ```
 
-   The first time, also run `seed_meetup_locations` and `createsuperuser` the same way.
+   The first time, also run `seed_meetup_locations` the same way, and create the super
+   admin, who signs in to the frontend's `/admin`:
+
+   ```bash
+   DATABASE_URL='<prisma direct url>' python manage.py createsuperuser
+   ```
+
+   There can only be one. To change its password later, run `changepassword <email>`.
 
 Limits on Vercel: request bodies are capped at 4.5 MB (image uploads are limited to 4 MB),
 and each request has a time limit, so the ISBN lookup times out after 4 seconds per catalogue.
