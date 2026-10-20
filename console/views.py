@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import Count, Max, Q
+from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import mixins, viewsets
@@ -128,13 +128,17 @@ class SlideViewSet(SuperAdminMixin, viewsets.ModelViewSet):
     filter_backends = []
 
     def perform_create(self, serializer):
-        # New slides go last, so they never jump ahead of ones already ordered.
-        last = Slide.objects.aggregate(last=Max("position"))["last"]
-        serializer.save(position=0 if last is None else last + 1)
+        # New slides go last in their slider, so they never jump ahead of ordered ones.
+        serializer.save(position=Slide.next_position(serializer.validated_data["slider"]))
 
     def perform_update(self, serializer):
         old_image = serializer.instance.image
-        slide = serializer.save()
+        changes = {}
+        new_slider = serializer.validated_data.get("slider", serializer.instance.slider)
+        if new_slider != serializer.instance.slider:
+            # A slide moved to another slider goes last there.
+            changes["position"] = Slide.next_position(new_slider)
+        slide = serializer.save(**changes)
         if "image" in serializer.validated_data and old_image.name != slide.image.name:
             old_image.delete(save=False)
 
@@ -146,10 +150,10 @@ class SlideViewSet(SuperAdminMixin, viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"])
     def reorder(self, request):
-        """Saves the display order. Send `{"ids": [...]}` with every slide id."""
+        """Saves one slider's order. Send `{"slider": ..., "ids": [...]}` with all its slide ids."""
         serializer = serializers.SlideOrderSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        cms_services.reorder_slides(serializer.validated_data["ids"])
+        cms_services.reorder_slides(**serializer.validated_data)
         return Response(self.get_serializer(self.get_queryset(), many=True).data)
 
 

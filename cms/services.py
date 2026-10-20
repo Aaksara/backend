@@ -5,11 +5,11 @@ from .models import HomeSection, Slide
 
 
 @transaction.atomic
-def reorder_slides(ids):
-    """Sets display order from a list containing every slide id exactly once."""
-    slides = Slide.objects.select_for_update().in_bulk()
+def reorder_slides(slider, ids):
+    """Sets the order of one slider's slides, from a list of all their ids, each once."""
+    slides = Slide.objects.select_for_update().filter(slider=slider).in_bulk()
     if len(ids) != len(set(ids)) or set(ids) != set(slides):
-        raise ValidationError({"ids": "Send every slide id exactly once."})
+        raise ValidationError({"ids": "Send every slide of this slider exactly once."})
     for position, slide_id in enumerate(ids):
         slides[slide_id].position = position
     Slide.objects.bulk_update(slides.values(), ["position"])

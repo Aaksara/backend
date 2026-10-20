@@ -66,6 +66,7 @@ class SlideSerializer(serializers.ModelSerializer):
         model = Slide
         fields = [
             "id",
+            "slider",
             "caption",
             "link",
             "image",
@@ -75,10 +76,15 @@ class SlideSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["id", "position", "updated_at"]
-        extra_kwargs = {"image": {"validators": [validate_image_size]}}
+        extra_kwargs = {
+            "image": {"validators": [validate_image_size]},
+            # Each slider has its own slides, so a new one must say where it goes.
+            "slider": {"required": True},
+        }
 
 
 class SlideOrderSerializer(serializers.Serializer):
+    slider = serializers.ChoiceField(choices=Slide.Slider.choices)
     ids = serializers.ListField(child=serializers.IntegerField(), allow_empty=True)
 
 

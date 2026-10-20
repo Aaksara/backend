@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1100" font-family="Helvetica, Arial, sans-serif">
+	<title>Checking a textbook before paying</title>
+	<rect width="1600" height="1100" fill="#EDF3F9"/>
+	<rect y="860" width="1600" height="240" fill="#C9A46A"/>
+	<rect y="860" width="1600" height="24" fill="#B48C50"/>
+
+	<!-- Open book -->
+	<g transform="translate(260 300)">
+		<ellipse cx="400" cy="590" rx="460" ry="34" fill="#000" opacity=".1"/>
+		<path d="M0 60 L400 100 L800 60 L800 560 L400 600 L0 560 Z" fill="#003262"/>
+		<path d="M20 40 C150 20 300 40 400 90 L400 570 C300 520 150 510 20 530 Z" fill="#FFFFFF"/>
+		<path d="M780 40 C650 20 500 40 400 90 L400 570 C500 520 650 510 780 530 Z" fill="#F7F3EA"/>
+		<g fill="#C3CFDB">
+			<rect x="70" y="110" width="270" height="14" rx="7"/>
+			<rect x="70" y="150" width="240" height="14" rx="7"/>
+			<rect x="70" y="190" width="270" height="14" rx="7"/>
+			<rect x="70" y="230" width="200" height="14" rx="7"/>
+			<rect x="70" y="300" width="270" height="110" rx="10" fill="#DCE7F2"/>
+			<rect x="70" y="440" width="250" height="14" rx="7"/>
+			<rect x="460" y="110" width="270" height="14" rx="7"/>
+			<rect x="460" y="150" width="250" height="14" rx="7"/>
+			<rect x="460" y="230" width="270" height="14" rx="7"/>
+			<rect x="460" y="270" width="230" height="14" rx="7"/>
+			<rect x="460" y="310" width="270" height="14" rx="7"/>
+			<rect x="460" y="350" width="210" height="14" rx="7"/>
+			<rect x="460" y="430" width="260" height="14" rx="7"/>
+		</g>
+		<!-- A highlighted note the buyer spots -->
+		<rect x="460" y="186" width="230" height="24" rx="6" fill="#FDB515" opacity=".6"/>
+		<rect x="460" y="190" width="200" height="14" rx="7" fill="#8B6100"/>
+	</g>
+
+	<!-- Magnifying glass -->
+	<g transform="translate(900 470) rotate(35)">
+		<circle r="150" fill="#FFFFFF" fill-opacity=".3" stroke="#003262" stroke-width="30"/>
+		<path d="M-80 -70 a110 110 0 0 1 80 -50" fill="none" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round"/>
+		<rect x="-24" y="165" width="48" height="200" rx="24" fill="#003262"/>
+		<rect x="-24" y="165" width="48" height="40" fill="#FDB515"/>
+	</g>
+
+	<!-- Condition checklist -->
+	<g transform="translate(1190 120) rotate(6)">
+		<rect width="300" height="400" rx="24" fill="#FFFFFF" stroke="#D3DEE9" stroke-width="4"/>
+		<rect x="100" y="-24" width="100" height="48" rx="14" fill="#003262"/>
+		<g transform="translate(36 80)">
+			<rect width="44" height="44" rx="10" fill="#2E9E6A"/>
+			<path d="M11 23 l8 8 l15 -17" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+			<rect x="64" y="14" width="160" height="16" rx="8" fill="#9AA9B8"/>
+		</g>
+		<g transform="translate(36 170)">
+			<rect width="44" height="44" rx="10" fill="#2E9E6A"/>
+			<path d="M11 23 l8 8 l15 -17" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+			<rect x="64" y="14" width="130" height="16" rx="8" fill="#9AA9B8"/>
+		</g>
+		<g transform="translate(36 260)">
+			<rect width="44" height="44" rx="10" fill="#FDB515"/>
+			<path d="M11 23 l8 8 l15 -17" fill="none" stroke="#2B1D00" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+			<rect x="64" y="14" width="150" height="16" rx="8" fill="#9AA9B8"/>
+		</g>
+	</g>
+</svg>

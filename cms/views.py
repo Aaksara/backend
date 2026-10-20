@@ -1,3 +1,4 @@
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -8,12 +9,13 @@ from .serializers import PublicSlideSerializer
 
 
 class PublishedSlideList(generics.ListAPIView):
-    """The home page's published slides, in display order."""
+    """Published slides in display order. Pick one slider with `?slider=home_hero`."""
 
     serializer_class = PublicSlideSerializer
     permission_classes = [AllowAny]
     pagination_class = None
-    filter_backends = []
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["slider"]
     queryset = Slide.objects.filter(is_published=True)
 
 

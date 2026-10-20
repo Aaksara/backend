@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1100" font-family="Helvetica, Arial, sans-serif">
+	<title>Searching for course textbooks on a phone</title>
+	<defs>
+		<g id="row">
+			<rect x="0" y="-150" width="40" height="150" rx="4" fill="#003262"/>
+			<rect x="44" y="-130" width="30" height="130" rx="4" fill="#FDB515"/>
+			<rect x="78" y="-160" width="46" height="160" rx="4" fill="#3B7EA1"/>
+			<rect x="128" y="-120" width="34" height="120" rx="4" fill="#C9D8E8"/>
+			<rect x="166" y="-155" width="42" height="155" rx="4" fill="#8B6100"/>
+			<rect x="212" y="-140" width="28" height="140" rx="4" fill="#003262"/>
+			<rect x="244" y="-110" width="50" height="110" rx="4" fill="#F2C14E"/>
+			<rect x="298" y="-150" width="36" height="150" rx="4" fill="#3B7EA1"/>
+			<rect x="338" y="-135" width="44" height="135" rx="4" fill="#22272A"/>
+			<rect x="386" y="-160" width="32" height="160" rx="4" fill="#FDB515"/>
+			<rect x="422" y="-125" width="48" height="125" rx="4" fill="#5B8DB8"/>
+		</g>
+		<g id="shelf">
+			<rect width="500" height="760" rx="16" fill="#003262"/>
+			<rect x="14" y="14" width="472" height="732" rx="8" fill="#DCE7F2"/>
+			<use href="#row" x="15" y="190"/>
+			<use href="#row" x="15" y="370"/>
+			<use href="#row" x="15" y="550"/>
+			<use href="#row" x="15" y="730"/>
+			<rect x="14" y="190" width="472" height="14" fill="#00264D"/>
+			<rect x="14" y="370" width="472" height="14" fill="#00264D"/>
+			<rect x="14" y="550" width="472" height="14" fill="#00264D"/>
+		</g>
+	</defs>
+
+	<rect width="1600" height="1100" fill="#E8F0F8"/>
+	<rect y="900" width="1600" height="200" fill="#D3E1EE"/>
+
+	<use href="#shelf" x="90" y="150"/>
+	<use href="#shelf" x="1010" y="150"/>
+
+	<!-- Phone searching for a course -->
+	<g transform="translate(620 120)">
+		<rect width="360" height="760" rx="52" fill="#22272A"/>
+		<rect x="18" y="18" width="324" height="724" rx="38" fill="#FFFFFF"/>
+		<rect x="140" y="34" width="80" height="12" rx="6" fill="#22272A"/>
+
+		<rect x="40" y="80" width="280" height="56" rx="28" fill="#EEF3F8"/>
+		<circle cx="74" cy="106" r="11" fill="none" stroke="#003262" stroke-width="5"/>
+		<line x1="82" y1="114" x2="92" y2="124" stroke="#003262" stroke-width="5" stroke-linecap="round"/>
+		<text x="104" y="117" font-size="28" font-weight="700" fill="#003262">BIO 101</text>
+
+		<text x="40" y="186" font-size="20" font-weight="700" fill="#8B6100" letter-spacing="2">3 MATCHES</text>
+
+		<g transform="translate(40 206)">
+			<rect width="280" height="140" rx="20" fill="#F4F7FB"/>
+			<rect x="16" y="16" width="76" height="108" rx="8" fill="#003262"/>
+			<rect x="16" y="40" width="76" height="10" fill="#FDB515"/>
+			<rect x="108" y="26" width="150" height="16" rx="8" fill="#003262"/>
+			<rect x="108" y="54" width="110" height="12" rx="6" fill="#9AA9B8"/>
+			<rect x="108" y="90" width="70" height="30" rx="15" fill="#FDB515"/>
+			<text x="122" y="112" font-size="20" font-weight="800" fill="#2B1D00">$45</text>
+		</g>
+		<g transform="translate(40 362)">
+			<rect width="280" height="140" rx="20" fill="#F4F7FB"/>
+			<rect x="16" y="16" width="76" height="108" rx="8" fill="#3B7EA1"/>
+			<rect x="16" y="40" width="76" height="10" fill="#FFFFFF" opacity=".7"/>
+			<rect x="108" y="26" width="130" height="16" rx="8" fill="#003262"/>
+			<rect x="108" y="54" width="90" height="12" rx="6" fill="#9AA9B8"/>
+			<rect x="108" y="90" width="70" height="30" rx="15" fill="#FDB515"/>
+			<text x="122" y="112" font-size="20" font-weight="800" fill="#2B1D00">$38</text>
+		</g>
+		<g transform="translate(40 518)" opacity=".55">
+			<rect width="280" height="140" rx="20" fill="#F4F7FB"/>
+			<rect x="16" y="16" width="76" height="108" rx="8" fill="#8B6100"/>
+			<rect x="108" y="26" width="140" height="16" rx="8" fill="#003262"/>
+			<rect x="108" y="54" width="100" height="12" rx="6" fill="#9AA9B8"/>
+		</g>
+	</g>
+
+	<!-- Magnifying glass -->
+	<g transform="translate(930 560) rotate(-20)">
+		<rect x="-18" y="110" width="36" height="170" rx="18" fill="#8B6100"/>
+		<circle r="120" fill="#FFFFFF" fill-opacity=".35" stroke="#FDB515" stroke-width="28"/>
+		<path d="M-60 -50 a80 80 0 0 1 60 -40" fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round"/>
+	</g>
+</svg>

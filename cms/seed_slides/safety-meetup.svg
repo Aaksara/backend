@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1100" font-family="Helvetica, Arial, sans-serif">
+	<title>Meeting at an approved campus spot</title>
+	<rect width="1600" height="1100" fill="#D8EAF7"/>
+
+	<!-- Sun -->
+	<g transform="translate(1310 170)" fill="#FDB515">
+		<circle r="80"/>
+		<g stroke="#FDB515" stroke-width="14" stroke-linecap="round">
+			<line y1="-120" y2="-160"/><line y1="120" y2="160"/>
+			<line x1="-120" x2="-160"/><line x1="120" x2="160"/>
+			<line x1="85" y1="85" x2="113" y2="113"/><line x1="-85" y1="-85" x2="-113" y2="-113"/>
+			<line x1="85" y1="-85" x2="113" y2="-113"/><line x1="-85" y1="85" x2="-113" y2="113"/>
+		</g>
+	</g>
+	<g fill="#FFFFFF" opacity=".85">
+		<ellipse cx="300" cy="190" rx="120" ry="40"/><ellipse cx="370" cy="160" rx="80" ry="50"/>
+	</g>
+
+	<!-- Lawn and path -->
+	<rect y="830" width="1600" height="270" fill="#9CCB9E"/>
+	<path d="M700 1100 L760 860 L840 860 L900 1100 Z" fill="#E8DCC4"/>
+
+	<!-- Trees -->
+	<g>
+		<rect x="200" y="660" width="30" height="180" fill="#6B4A2B"/>
+		<circle cx="215" cy="610" r="120" fill="#4F8F68"/>
+		<rect x="1370" y="680" width="30" height="160" fill="#6B4A2B"/>
+		<circle cx="1385" cy="630" r="110" fill="#4F8F68"/>
+	</g>
+
+	<!-- Library building -->
+	<g transform="translate(400 330)">
+		<path d="M-20 140 L400 0 L820 140 Z" fill="#003262"/>
+		<rect x="-10" y="140" width="820" height="40" fill="#00264D"/>
+		<text x="400" y="170" font-size="30" font-weight="800" text-anchor="middle" fill="#FDB515" letter-spacing="10">LIBRARY</text>
+		<rect x="20" y="180" width="760" height="300" fill="#F4EEE2"/>
+		<g fill="#FFFFFF" stroke="#D9CFBC" stroke-width="4">
+			<rect x="50" y="180" width="50" height="300"/>
+			<rect x="190" y="180" width="50" height="300"/>
+			<rect x="330" y="180" width="50" height="300"/>
+			<rect x="420" y="180" width="50" height="300"/>
+			<rect x="560" y="180" width="50" height="300"/>
+			<rect x="700" y="180" width="50" height="300"/>
+		</g>
+		<g fill="#FDE6A6">
+			<rect x="115" y="240" width="60" height="100" rx="30"/>
+			<rect x="255" y="240" width="60" height="100" rx="30"/>
+			<rect x="485" y="240" width="60" height="100" rx="30"/>
+			<rect x="625" y="240" width="60" height="100" rx="30"/>
+		</g>
+		<path d="M370 480 v-130 a30 30 0 0 1 60 0 v130 z" fill="#003262"/>
+		<rect x="-10" y="480" width="820" height="20" fill="#D9CFBC"/>
+		<rect x="20" y="500" width="760" height="20" fill="#E6DDCB"/>
+	</g>
+
+	<!-- Map pin marking the safe spot -->
+	<g transform="translate(800 120)">
+		<ellipse cx="0" cy="250" rx="40" ry="12" fill="#000" opacity=".12"/>
+		<path d="M0 230 C-60 150 -110 100 -110 30 a110 110 0 0 1 220 0 C110 100 60 150 0 230 Z" fill="#FDB515" stroke="#FFFFFF" stroke-width="8"/>
+		<circle cy="30" r="58" fill="#003262"/>
+		<path d="M-26 32 l18 18 l36 -40" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+	</g>
+
+	<!-- Two students meeting -->
+	<g transform="translate(620 690)">
+		<circle cx="0" cy="0" r="30" fill="#E9B48A"/>
+		<path d="M-40 140 v-70 a40 40 0 0 1 80 0 v70 z" fill="#003262"/>
+		<rect x="-14" y="60" width="60" height="40" rx="6" fill="#FDB515" transform="rotate(-10 16 80)"/>
+		<rect x="-36" y="140" width="28" height="70" rx="12" fill="#22272A"/>
+		<rect x="8" y="140" width="28" height="70" rx="12" fill="#22272A"/>
+	</g>
+	<g transform="translate(980 690)">
+		<circle cx="0" cy="0" r="30" fill="#8D5A3B"/>
+		<path d="M-40 140 v-70 a40 40 0 0 1 80 0 v70 z" fill="#3B7EA1"/>
+		<rect x="-36" y="140" width="28" height="70" rx="12" fill="#22272A"/>
+		<rect x="8" y="140" width="28" height="70" rx="12" fill="#22272A"/>
+	</g>
+
+	<!-- Lamp post -->
+	<g transform="translate(1280 560)">
+		<rect x="-8" y="0" width="16" height="280" fill="#22272A"/>
+		<rect x="-26" y="-50" width="52" height="60" rx="10" fill="#22272A"/>
+		<rect x="-16" y="-40" width="32" height="40" rx="6" fill="#FDE6A6"/>
+	</g>
+</svg>

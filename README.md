@@ -64,10 +64,11 @@ vercel.json  runs core/wsgi.py on Vercel's Python runtime
   sign in through the normal login, and `GET /api/auth/me/` returns `is_superuser: true`.
   Everything under `/api/admin/` refuses anyone else (`utilities.permission.IsSuperAdmin`).
   `createsuperuser` refuses to create a second super admin; use `changepassword` instead.
-- **Storefront content.** The console edits the home page's hero slides and which of its
-  sections show, in what order. The storefront reads them without sign-in from
-  `GET /api/cms/slides/` (published slides) and `GET /api/cms/home-sections/` (visible
-  section kinds, top to bottom).
+- **Storefront content.** The console edits the slides of the site's three sliders (home
+  page top, home page safety, sign-in pages) and which home page sections show, in what
+  order. The storefront reads them without sign-in from `GET /api/cms/slides/?slider=...`
+  and `GET /api/cms/home-sections/`. `python manage.py seed_slides` gives every slider with
+  no slides the site's built-in ones, to edit from there.
 - **Chat** is plain REST. The app polls `GET /api/conversations/` (unread counts) and
   `GET /api/conversations/{id}/messages/` for new messages.
 
@@ -120,6 +121,8 @@ vercel.json  runs core/wsgi.py on Vercel's Python runtime
 
    ```bash
    DATABASE_URL='<prisma direct url>' python manage.py seed_meetup_locations
+   # With the AWS_* storage variables set too, so the images go to the bucket:
+   DATABASE_URL='<prisma direct url>' python manage.py seed_slides
    DATABASE_URL='<prisma direct url>' python manage.py createsuperuser
    ```
 
