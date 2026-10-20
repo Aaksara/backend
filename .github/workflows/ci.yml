@@ -24,8 +24,8 @@ jobs:
       DJANGO_SECRET_KEY: ci-secret-key-that-is-long-enough-for-jwt-signing
       UNIVERSITY_EMAIL_DOMAINS: university.edu
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"  # same as Vercel
           cache: pip
@@ -56,8 +56,8 @@ jobs:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -70,7 +70,7 @@ jobs:
           DJANGO_SECRET_KEY: migrate-only-not-used-for-signing
       - name: Deploy to Vercel
         run: |
-          npm install --global vercel@62.4.0
+          npm install --global vercel@62.0.0
           vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
           vercel build --prod --token="$VERCEL_TOKEN"
           vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
