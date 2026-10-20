@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from books.models import Listing
-from cms.models import Banner, PageSection
+from cms.models import HomeSection, Slide
 from exchanges.models import MeetupLocation
 from utilities.validators import validate_image_size
 
@@ -61,56 +61,42 @@ class DirectorySummarySerializer(serializers.Serializer):
     active_buyers = serializers.IntegerField()
 
 
-class BannerSerializer(serializers.ModelSerializer):
+class SlideSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Banner
+        model = Slide
         fields = [
             "id",
-            "title",
-            "target_url",
+            "caption",
+            "link",
             "image",
-            "image_width",
-            "image_height",
             "alt_text",
-            "placement",
-            "status",
+            "is_published",
             "position",
             "updated_at",
         ]
-        read_only_fields = ["id", "image_width", "image_height", "position", "updated_at"]
+        read_only_fields = ["id", "position", "updated_at"]
         extra_kwargs = {"image": {"validators": [validate_image_size]}}
 
 
-class BannerOrderSerializer(serializers.Serializer):
+class SlideOrderSerializer(serializers.Serializer):
     ids = serializers.ListField(child=serializers.IntegerField(), allow_empty=True)
 
 
-class PageSectionSerializer(serializers.ModelSerializer):
+class HomeSectionSerializer(serializers.ModelSerializer):
     class Meta:
-        model = PageSection
-        fields = ["id", "kind", "display_title", "anchor_id", "is_enabled", "variant"]
-        read_only_fields = ["id"]
-        # Uniqueness is checked across the whole submitted list in LayoutPublishSerializer.
-        extra_kwargs = {"anchor_id": {"validators": []}}
+        model = HomeSection
+        fields = ["kind", "is_enabled"]
+        # Each kind is sent once on purpose; HomeSectionsSerializer checks the whole list.
+        extra_kwargs = {"kind": {"validators": []}}
 
 
-class LayoutSerializer(serializers.Serializer):
-    platform = serializers.CharField()
-    version = serializers.IntegerField()
-    published_at = serializers.DateTimeField(allow_null=True)
-    published_by = serializers.CharField(allow_null=True)
-    sections = PageSectionSerializer(many=True)
-
-
-class LayoutPublishSerializer(serializers.Serializer):
-    base_version = serializers.IntegerField(min_value=0)
-    sections = PageSectionSerializer(many=True)
+class HomeSectionsSerializer(serializers.Serializer):
+    sections = HomeSectionSerializer(many=True)
 
     def validate_sections(self, sections):
-        anchors = [section["anchor_id"] for section in sections]
-        repeated = sorted({anchor for anchor in anchors if anchors.count(anchor) > 1})
-        if repeated:
-            raise serializers.ValidationError(f"Anchor IDs must be unique: {', '.join(repeated)}.")
+        kinds = [section["kind"] for section in sections]
+        if sorted(kinds) != sorted(HomeSection.Kind.values):
+            raise serializers.ValidationError("Send every home page section exactly once.")
         return sections
 
 

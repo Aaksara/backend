@@ -3,6 +3,6 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path("banners/", views.PublishedBannerList.as_view(), name="cms-banners"),
-    path("layouts/<str:platform>/", views.LivePageSectionList.as_view(), name="cms-layout"),
+    path("slides/", views.PublishedSlideList.as_view(), name="cms-slides"),
+    path("home-sections/", views.VisibleHomeSectionList.as_view(), name="cms-home-sections"),
 ]
