@@ -10,3 +10,8 @@ staticfiles/
 .ruff_cache/
 .coverage
 docker-compose.override.yml
+
+# Created by `vercel link`; holds this machine's project link.
+.vercel/
+.vercel
+.env*

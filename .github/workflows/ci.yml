@@ -39,3 +39,40 @@ jobs:
       - name: Tests
         run: pytest -q
 
+
+  # Releases main in a fixed order: tests (above) -> migrate -> deploy, so new code never
+  # goes live before its database tables exist. Vercel's own deploys of main are off
+  # (vercel.json), so this job is the only way code reaches production.
+  release:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    # One release at a time; a newer push waits instead of racing an older one.
+    concurrency:
+      group: production-release
+      cancel-in-progress: false
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Migrate the production database
+        run: python manage.py migrate --noinput
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          # Settings require a key outside debug mode; migrate never signs anything with it.
+          DJANGO_SECRET_KEY: migrate-only-not-used-for-signing
+      - name: Deploy to Vercel
+        run: |
+          npm install --global vercel@62.4.0
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel build --prod --token="$VERCEL_TOKEN"
+          vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
