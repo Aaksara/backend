@@ -97,21 +97,34 @@ vercel.json  runs core/wsgi.py on Vercel's Python runtime
    | `NUM_PROXIES` | `1` |
    | `REDIS_URL` | optional, recommended: an Upstash Redis URL, so rate limits are shared |
 
-4. **Migrations.** Vercel does not run them. After each deploy that adds a migration, run
-   from your machine:
+4. **Releases.** Pushing to `main` runs `.github/workflows/ci.yml`: tests, then
+   `migrate` on the production database, then the Vercel deploy, in that order, so code
+   never goes live before its tables exist. Vercel's own deploys of `main` are switched off
+   in `vercel.json`; other branches still get preview deploys. One-time setup, in the
+   GitHub repo under Settings → Secrets and variables → Actions:
+
+   | Secret | Value |
+   | --- | --- |
+   | `PRODUCTION_DATABASE_URL` | the Prisma Postgres direct URL |
+   | `VERCEL_TOKEN` | a token from Vercel → Account Settings → Tokens |
+   | `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` | from `.vercel/project.json` after `vercel link` |
+
+   Also create a `production` environment (Settings → Environments); add required
+   reviewers there to approve each release by hand.
+
+   When a migration drops or renames a column, release the code that stops using it first,
+   and the migration in a later release.
+
+5. **First run.** Seed the meetup locations and create the super admin, who signs in to the
+   frontend's `/admin`:
 
    ```bash
-   DATABASE_URL='<prisma direct url>' python manage.py migrate
-   ```
-
-   The first time, also run `seed_meetup_locations` the same way, and create the super
-   admin, who signs in to the frontend's `/admin`:
-
-   ```bash
+   DATABASE_URL='<prisma direct url>' python manage.py seed_meetup_locations
    DATABASE_URL='<prisma direct url>' python manage.py createsuperuser
    ```
 
-   There can only be one. To change its password later, run `changepassword <email>`.
+   There can only be one super admin. To change its password later, run
+   `changepassword <email>` the same way.
 
 Limits on Vercel: request bodies are capped at 4.5 MB (image uploads are limited to 4 MB),
 and each request has a time limit, so the ISBN lookup times out after 4 seconds per catalogue.

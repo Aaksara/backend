@@ -1,5 +1,6 @@
 {
 	"version": 2,
 	"builds": [{ "src": "core/wsgi.py", "use": "@vercel/python" }],
-	"routes": [{ "src": "/(.*)", "dest": "core/wsgi.py" }]
+	"routes": [{ "src": "/(.*)", "dest": "core/wsgi.py" }],
+	"git": { "deploymentEnabled": { "main": false } }
 }
