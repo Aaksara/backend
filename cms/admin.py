@@ -5,8 +5,8 @@ from .models import HomeSection, Slide
 
 @admin.register(Slide)
 class SlideAdmin(admin.ModelAdmin):
-    list_display = ["caption", "is_published", "position", "updated_at"]
-    list_filter = ["is_published"]
+    list_display = ["caption", "slider", "is_published", "position", "updated_at"]
+    list_filter = ["slider", "is_published"]
     search_fields = ["caption", "link"]
 
 

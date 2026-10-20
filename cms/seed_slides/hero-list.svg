@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1100" font-family="Helvetica, Arial, sans-serif">
+	<title>Listing a textbook by its ISBN</title>
+	<rect width="1600" height="1100" fill="#FFF5DD"/>
+	<circle cx="1350" cy="180" r="260" fill="#FDE6A6"/>
+	<circle cx="220" cy="980" r="300" fill="#FDE6A6"/>
+	<rect y="880" width="1600" height="220" fill="#F3DFAE"/>
+
+	<!-- Stack of textbooks -->
+	<g transform="translate(200 380)">
+		<ellipse cx="300" cy="510" rx="340" ry="30" fill="#000" opacity=".08"/>
+		<rect x="0" y="400" width="600" height="100" rx="12" fill="#003262"/>
+		<rect x="20" y="410" width="560" height="80" rx="6" fill="#F7F3EA"/>
+		<rect x="0" y="400" width="70" height="100" rx="12" fill="#003262"/>
+		<rect x="90" y="440" width="200" height="16" rx="8" fill="#003262" opacity=".25"/>
+
+		<rect x="40" y="300" width="540" height="100" rx="12" fill="#FDB515"/>
+		<rect x="60" y="310" width="500" height="80" rx="6" fill="#FFFBF0"/>
+		<rect x="510" y="300" width="70" height="100" rx="12" fill="#FDB515"/>
+
+		<rect x="-10" y="200" width="560" height="100" rx="12" fill="#3B7EA1"/>
+		<rect x="10" y="210" width="520" height="80" rx="6" fill="#F7F3EA"/>
+		<rect x="-10" y="200" width="70" height="100" rx="12" fill="#3B7EA1"/>
+
+		<rect x="50" y="100" width="500" height="100" rx="12" fill="#8B6100"/>
+		<rect x="70" y="110" width="460" height="80" rx="6" fill="#FFFBF0"/>
+		<rect x="480" y="100" width="70" height="100" rx="12" fill="#8B6100"/>
+
+		<!-- Price tag -->
+		<g transform="translate(470 110) rotate(14)">
+			<path d="M0 0 C40 -40 80 -60 120 -50" fill="none" stroke="#22272A" stroke-width="4"/>
+			<path d="M110 -80 h170 a16 16 0 0 1 16 16 v110 a16 16 0 0 1 -16 16 h-170 l-50 -71 z" fill="#FFFFFF" stroke="#003262" stroke-width="6"/>
+			<circle cx="100" cy="-9" r="10" fill="#003262"/>
+			<text x="150" y="10" font-size="64" font-weight="800" fill="#003262">$45</text>
+		</g>
+	</g>
+
+	<!-- Phone scanning an ISBN -->
+	<g transform="translate(1110 170) rotate(8)">
+		<rect width="340" height="680" rx="50" fill="#22272A"/>
+		<rect x="16" y="16" width="308" height="648" rx="36" fill="#0E2A47"/>
+		<rect x="130" y="32" width="80" height="12" rx="6" fill="#22272A"/>
+
+		<g transform="translate(60 170)">
+			<rect width="220" height="150" rx="10" fill="#FFFFFF"/>
+			<g fill="#22272A">
+				<rect x="20" y="20" width="6" height="96"/><rect x="32" y="20" width="12" height="96"/>
+				<rect x="50" y="20" width="4" height="96"/><rect x="60" y="20" width="10" height="96"/>
+				<rect x="76" y="20" width="6" height="96"/><rect x="88" y="20" width="14" height="96"/>
+				<rect x="108" y="20" width="4" height="96"/><rect x="118" y="20" width="8" height="96"/>
+				<rect x="132" y="20" width="12" height="96"/><rect x="150" y="20" width="4" height="96"/>
+				<rect x="160" y="20" width="10" height="96"/><rect x="176" y="20" width="6" height="96"/>
+				<rect x="188" y="20" width="12" height="96"/>
+			</g>
+			<text x="110" y="140" font-size="16" text-anchor="middle" fill="#22272A">978-1-337-61392-8</text>
+			<rect x="-20" y="66" width="260" height="6" rx="3" fill="#FDB515"/>
+		</g>
+		<g fill="none" stroke="#FDB515" stroke-width="8" stroke-linecap="round">
+			<path d="M40 190 v-40 h40"/><path d="M300 190 v-40 h-40"/>
+			<path d="M40 300 v40 h40"/><path d="M300 300 v40 h-40"/>
+		</g>
+
+		<g transform="translate(40 440)">
+			<rect width="260" height="110" rx="24" fill="#FFFFFF"/>
+			<circle cx="56" cy="55" r="30" fill="#2E9E6A"/>
+			<path d="M42 56 l10 10 l20 -22" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+			<text x="104" y="50" font-size="26" font-weight="800" fill="#003262">Listed!</text>
+			<rect x="104" y="66" width="120" height="12" rx="6" fill="#9AA9B8"/>
+		</g>
+	</g>
+
+	<!-- Sparkles -->
+	<g fill="#FDB515">
+		<path d="M930 160 l14 36 l36 14 l-36 14 l-14 36 l-14 -36 l-36 -14 l36 -14 z"/>
+		<path d="M1420 760 l10 26 l26 10 l-26 10 l-10 26 l-10 -26 l-26 -10 l26 -10 z"/>
+	</g>
+</svg>

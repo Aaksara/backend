@@ -173,7 +173,12 @@ def test_export_is_csv_of_the_filtered_list_and_defuses_formulas(admin_client, m
 def test_create_slide_with_image(admin_client):
     resp = admin_client.post(
         "/api/admin/slides/",
-        {"caption": "Donate drive", "link": "https://akshara.app/donate", "image": png()},
+        {
+            "slider": "home_hero",
+            "caption": "Donate drive",
+            "link": "https://akshara.app/donate",
+            "image": png(),
+        },
         format="multipart",
     )
 
@@ -182,13 +187,23 @@ def test_create_slide_with_image(admin_client):
     assert resp.data["image"].endswith(".png")
 
 
+def test_new_slide_must_say_which_slider(admin_client):
+    resp = admin_client.post(
+        "/api/admin/slides/", {"caption": "x", "image": png()}, format="multipart"
+    )
+    assert resp.status_code == 400
+    assert "slider" in resp.data
+
+
 def test_slide_link_is_optional_but_must_be_a_web_address(admin_client):
     without = admin_client.post(
-        "/api/admin/slides/", {"caption": "x", "image": png()}, format="multipart"
+        "/api/admin/slides/",
+        {"slider": "sign_in", "caption": "x", "image": png()},
+        format="multipart",
     )
     script = admin_client.post(
         "/api/admin/slides/",
-        {"caption": "x", "link": "javascript:alert(1)", "image": png()},
+        {"slider": "sign_in", "caption": "x", "link": "javascript:alert(1)", "image": png()},
         format="multipart",
     )
 
@@ -210,37 +225,78 @@ def test_update_without_new_image_keeps_it(admin_client):
     assert slide.image.storage.exists(slide.image.name)
 
 
-def test_new_slides_go_last_even_after_deletes(admin_client):
+def test_new_slides_go_last_in_their_slider(admin_client):
     first, _ = make_slide(caption="A", position=0), make_slide(caption="B", position=1)
+    make_slide(caption="Sign-in", slider="sign_in", position=7)
     admin_client.delete(f"/api/admin/slides/{first.pk}/")
 
     created = admin_client.post(
-        "/api/admin/slides/", {"caption": "C", "image": png()}, format="multipart"
+        "/api/admin/slides/",
+        {"slider": "home_hero", "caption": "C", "image": png()},
+        format="multipart",
+    )
+    other = admin_client.post(
+        "/api/admin/slides/",
+        {"caption": "D", "slider": "sign_in", "image": png()},
+        format="multipart",
     )
 
-    assert [row["caption"] for row in admin_client.get("/api/admin/slides/").data] == ["B", "C"]
     assert created.data["position"] == 2
+    assert other.data["position"] == 8
 
 
-def test_reorder_needs_every_slide_once(admin_client):
+def test_moving_a_slide_to_another_slider_puts_it_last_there(admin_client):
+    slide = make_slide(caption="A", position=0)
+    make_slide(caption="Safety", slider="home_safety", position=4)
+
+    resp = admin_client.patch(
+        f"/api/admin/slides/{slide.pk}/", {"slider": "home_safety"}, format="json"
+    )
+
+    assert resp.data["slider"] == "home_safety"
+    assert resp.data["position"] == 5
+
+
+def test_reorder_needs_every_slide_of_the_slider_once(admin_client):
     first, second = make_slide(caption="A"), make_slide(caption="B")
+    other = make_slide(caption="Sign-in", slider="sign_in")
+    url = "/api/admin/slides/reorder/"
 
-    partial = admin_client.post("/api/admin/slides/reorder/", {"ids": [first.pk]}, format="json")
+    partial = admin_client.post(url, {"slider": "home_hero", "ids": [first.pk]}, format="json")
+    mixed = admin_client.post(
+        url, {"slider": "home_hero", "ids": [second.pk, first.pk, other.pk]}, format="json"
+    )
     resp = admin_client.post(
-        "/api/admin/slides/reorder/", {"ids": [second.pk, first.pk]}, format="json"
+        url, {"slider": "home_hero", "ids": [second.pk, first.pk]}, format="json"
     )
 
     assert partial.status_code == 400
-    assert [row["caption"] for row in resp.data] == ["B", "A"]
+    assert mixed.status_code == 400
+    hero = [row["caption"] for row in resp.data if row["slider"] == "home_hero"]
+    assert hero == ["B", "A"]
 
 
-def test_public_slides_show_only_published(client_for):
+def test_public_slides_show_only_published_ones_of_the_slider(client_for):
     make_slide(caption="Live", is_published=True)
     make_slide(caption="Draft")
+    make_slide(caption="Sign-in", slider="sign_in", is_published=True)
 
-    resp = client_for().get("/api/cms/slides/")
+    hero = client_for().get("/api/cms/slides/", {"slider": "home_hero"})
+    sign_in = client_for().get("/api/cms/slides/", {"slider": "sign_in"})
 
-    assert [row["caption"] for row in resp.data] == ["Live"]
+    assert [row["caption"] for row in hero.data] == ["Live"]
+    assert [row["caption"] for row in sign_in.data] == ["Sign-in"]
+
+
+def test_seed_slides_fills_only_empty_sliders(settings):
+    make_slide(caption="Mine", slider="sign_in")
+
+    call_command("seed_slides")
+    call_command("seed_slides")
+
+    counts = {slider: Slide.objects.filter(slider=slider).count() for slider in Slide.Slider.values}
+    assert counts == {"home_hero": 3, "home_safety": 3, "sign_in": 1}
+    assert Slide.objects.filter(slider="home_safety", is_published=True).count() == 3
 
 
 # --- Home page sections -------------------------------------------------------------------

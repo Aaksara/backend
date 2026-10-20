@@ -5,8 +5,14 @@ from utilities.models import TimeStampedModel
 
 
 class Slide(TimeStampedModel):
-    """A picture in the home page's hero slider. Lower `position` shows first."""
+    """A picture in one of the storefront's sliders. Lower `position` shows first."""
 
+    class Slider(models.TextChoices):
+        HOME_HERO = "home_hero", "Home page: top"
+        HOME_SAFETY = "home_safety", "Home page: safety"
+        SIGN_IN = "sign_in", "Sign-in and sign-up pages"
+
+    slider = models.CharField(max_length=20, choices=Slider.choices, default=Slider.HOME_HERO)
     caption = models.CharField(max_length=150)
     link = models.URLField(
         max_length=500,
@@ -22,10 +28,16 @@ class Slide(TimeStampedModel):
     position = models.PositiveIntegerField(default=0)
 
     class Meta:
-        ordering = ["position", "id"]
+        ordering = ["slider", "position", "id"]
 
     def __str__(self):
         return self.caption
+
+    @classmethod
+    def next_position(cls, slider):
+        """The position after the last slide in `slider`, so a new or moved slide goes last."""
+        last = cls.objects.filter(slider=slider).aggregate(last=models.Max("position"))["last"]
+        return 0 if last is None else last + 1
 
 
 class HomeSection(models.Model):
