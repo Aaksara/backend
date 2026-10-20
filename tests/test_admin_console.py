@@ -288,6 +288,22 @@ def test_public_slides_show_only_published_ones_of_the_slider(client_for):
     assert [row["caption"] for row in sign_in.data] == ["Sign-in"]
 
 
+def test_admin_can_add_the_built_in_slides_to_an_empty_slider(admin_client):
+    make_slide(caption="Mine", slider="sign_in")
+    url = "/api/admin/slides/add-defaults/"
+
+    added = admin_client.post(url, {"slider": "home_safety"}, format="json")
+    again = admin_client.post(url, {"slider": "home_safety"}, format="json")
+    taken = admin_client.post(url, {"slider": "sign_in"}, format="json")
+
+    assert added.status_code == 201
+    safety = [row for row in added.data if row["slider"] == "home_safety"]
+    assert [row["caption"] for row in safety][0] == "Check the book before you pay"
+    assert all(row["is_published"] for row in safety)
+    assert again.status_code == 400
+    assert taken.status_code == 400
+
+
 def test_seed_slides_fills_only_empty_sliders(settings):
     make_slide(caption="Mine", slider="sign_in")
 

@@ -83,6 +83,10 @@ class SlideSerializer(serializers.ModelSerializer):
         }
 
 
+class SliderSerializer(serializers.Serializer):
+    slider = serializers.ChoiceField(choices=Slide.Slider.choices)
+
+
 class SlideOrderSerializer(serializers.Serializer):
     slider = serializers.ChoiceField(choices=Slide.Slider.choices)
     ids = serializers.ListField(child=serializers.IntegerField(), allow_empty=True)
