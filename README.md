@@ -67,8 +67,9 @@ vercel.json  runs core/wsgi.py on Vercel's Python runtime
 - **Storefront content.** The console edits the slides of the site's three sliders (home
   page top, home page safety, sign-in pages) and which home page sections show, in what
   order. The storefront reads them without sign-in from `GET /api/cms/slides/?slider=...`
-  and `GET /api/cms/home-sections/`. `python manage.py seed_slides` gives every slider with
-  no slides the site's built-in ones, to edit from there.
+  and `GET /api/cms/home-sections/`. An empty slider can be given the site's built-in slides,
+  to edit from there: with the "Add the built-in slides" button in the console, or
+  `python manage.py seed_slides` for every empty slider at once.
 - **Chat** is plain REST. The app polls `GET /api/conversations/` (unread counts) and
   `GET /api/conversations/{id}/messages/` for new messages.
 

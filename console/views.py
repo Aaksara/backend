@@ -6,7 +6,7 @@ from django.db import transaction
 from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.utils import timezone
-from rest_framework import mixins, viewsets
+from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
@@ -17,6 +17,7 @@ from accounts.emails import EmailNotSent, send_verification_email
 from accounts.tokens import revoke_refresh_tokens
 from books.models import Listing
 from cms import services as cms_services
+from cms.defaults import add_default_slides
 from cms.models import HomeSection, Slide
 from exchanges.models import ExchangeRequest, MeetupLocation
 from utilities.permission import IsSuperAdmin
@@ -155,6 +156,17 @@ class SlideViewSet(SuperAdminMixin, viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         cms_services.reorder_slides(**serializer.validated_data)
         return Response(self.get_serializer(self.get_queryset(), many=True).data)
+
+    @action(detail=False, methods=["post"], url_path="add-defaults")
+    def add_defaults(self, request):
+        """Gives an empty slider the site's built-in slides. Send `{"slider": ...}`."""
+        serializer = serializers.SliderSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        if not add_default_slides(serializer.validated_data["slider"]):
+            raise ValidationError({"slider": "This slider already has slides."})
+        return Response(
+            self.get_serializer(self.get_queryset(), many=True).data, status=status.HTTP_201_CREATED
+        )
 
 
 class HomeSectionsView(SuperAdminMixin, APIView):
