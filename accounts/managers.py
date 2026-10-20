@@ -19,6 +19,12 @@ class UserManager(BaseUserManager):
         return self._create_user(email, password, **extra_fields)
 
     def create_superuser(self, email, password=None, **extra_fields):
+        """Creates the platform's super admin. There is exactly one, who runs the admin console."""
+        if self.filter(is_superuser=True).exists():
+            raise ValueError(
+                "A super admin already exists. Change its password with "
+                "`python manage.py changepassword <email>` instead."
+            )
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("is_email_verified", True)

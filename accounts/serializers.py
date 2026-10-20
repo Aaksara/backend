@@ -62,9 +62,10 @@ class UserSerializer(serializers.ModelSerializer):
             "phone",
             "avatar",
             "is_email_verified",
+            "is_superuser",
             "date_joined",
         ]
-        read_only_fields = ["id", "email", "is_email_verified", "date_joined"]
+        read_only_fields = ["id", "email", "is_email_verified", "is_superuser", "date_joined"]
         extra_kwargs = {"avatar": {"validators": [validate_image_size]}}
 
 
