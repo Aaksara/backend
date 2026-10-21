@@ -1,25 +1,17 @@
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-from rest_framework import mixins, viewsets
+from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
+from chat import services as chat_services
+from chat.serializers import ConversationSerializer
+
 from . import services
 from .filters import ExchangeRequestFilter
-from .models import ExchangeRequest, MeetupLocation
-from .serializers import (
-    AcceptExchangeSerializer,
-    ExchangeRequestSerializer,
-    MeetupLocationSerializer,
-)
-
-
-class MeetupLocationViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = MeetupLocation.objects.filter(is_active=True)
-    serializer_class = MeetupLocationSerializer
-    pagination_class = None
-    search_fields = ["name", "description"]
+from .models import ExchangeRequest
+from .serializers import ExchangeRequestSerializer
 
 
 class ExchangeRequestViewSet(
@@ -30,7 +22,7 @@ class ExchangeRequestViewSet(
 ):
     serializer_class = ExchangeRequestSerializer
     filterset_class = ExchangeRequestFilter
-    ordering_fields = ["created_at", "meetup_time"]
+    ordering_fields = ["created_at", "responded_at"]
 
     def get_queryset(self):
         user = self.request.user
@@ -42,7 +34,6 @@ class ExchangeRequestViewSet(
                 "listing__seller",
                 "offered_listing__book",
                 "offered_listing__seller",
-                "meetup_location",
             )
             .prefetch_related("listing__images", "offered_listing__images")
         )
@@ -65,10 +56,7 @@ class ExchangeRequestViewSet(
 
     @action(detail=True, methods=["post"])
     def accept(self, request, pk=None):
-        serializer = AcceptExchangeSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        exchange = services.accept(self.get_object().pk, request.user, **serializer.validated_data)
-        return self._respond(exchange)
+        return self._respond(services.accept(self.get_object().pk, request.user))
 
     @action(detail=True, methods=["post"])
     def reject(self, request, pk=None):
@@ -77,6 +65,20 @@ class ExchangeRequestViewSet(
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
         return self._respond(services.cancel(self.get_object().pk, request.user))
+
+    @action(detail=True, methods=["post"])
+    def conversation(self, request, pk=None):
+        """The chat between the two students, started if needed, where they agree where and
+        when to hand the book over. Either side may open it."""
+        exchange = self.get_object()
+        conversation, created = chat_services.open_conversation(
+            exchange.listing, exchange.requester
+        )
+        conversation = chat_services.conversations_for(request.user).get(pk=conversation.pk)
+        return Response(
+            ConversationSerializer(conversation, context=self.get_serializer_context()).data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
 
     @action(detail=True, methods=["post"])
     def complete(self, request, pk=None):

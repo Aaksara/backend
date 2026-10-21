@@ -17,7 +17,7 @@ class ListingFilter(django_filters.FilterSet):
 
     class Meta:
         model = Listing
-        fields = ["book", "seller", "preferred_location"]
+        fields = ["book", "seller"]
 
     def filter_isbn(self, queryset, name, value):
         try:

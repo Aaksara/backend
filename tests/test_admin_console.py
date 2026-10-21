@@ -10,7 +10,7 @@ from books.models import Listing
 from cms.content import CONTENT_SERIALIZERS
 from cms.models import HomeSection, Slide
 from exchanges import services
-from exchanges.models import ExchangeRequest, MeetupLocation
+from exchanges.models import ExchangeRequest
 
 pytestmark = pytest.mark.django_db
 
@@ -71,7 +71,6 @@ def test_me_tells_the_console_who_is_super_admin(admin_client, client_for, make_
         "/api/admin/slides/",
         "/api/admin/home-sections/",
         "/api/admin/home-sections/hero/content/",
-        "/api/admin/meetup-locations/",
         "/api/admin/campus/",
     ],
 )
@@ -192,7 +191,7 @@ def test_student_listings_are_all_of_theirs_with_request_counts(
 def test_activity_tells_each_side_of_an_exchange(admin_client, seller, buyer, make_listing):
     listing = make_listing(seller)
     request = ExchangeRequest.objects.create(listing=listing, requester=buyer)
-    services.accept(request.pk, seller, meetup_location=None, meetup_time=None)
+    services.accept(request.pk, seller)
     services.complete(request.pk, buyer)
 
     def kinds(student):
@@ -497,20 +496,6 @@ def test_every_section_kind_has_editable_content():
 
 
 # --- Campus -------------------------------------------------------------------------------
-
-
-def test_meetup_locations_include_retired_ones_and_cannot_be_deleted(admin_client, location):
-    retired = MeetupLocation.objects.create(name="Old gym", is_active=False)
-
-    listed = admin_client.get("/api/admin/meetup-locations/")
-    renamed = admin_client.patch(
-        f"/api/admin/meetup-locations/{retired.pk}/", {"is_active": True}, format="json"
-    )
-    deleted = admin_client.delete(f"/api/admin/meetup-locations/{location.pk}/")
-
-    assert {row["name"] for row in listed.data} == {"Main Library", "Old gym"}
-    assert renamed.data["is_active"] is True
-    assert deleted.status_code == 405
 
 
 def test_campus_settings_show_email_domains(admin_client):

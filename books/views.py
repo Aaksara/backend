@@ -81,7 +81,7 @@ class ListingViewSet(viewsets.ModelViewSet):
             listing=OuterRef("pk"), requester=user, status__in=ExchangeRequest.ACTIVE_STATUSES
         )
         listings = (
-            Listing.objects.select_related("book", "seller", "preferred_location")
+            Listing.objects.select_related("book", "seller")
             .prefetch_related("images")
             .annotate(has_active_request=Exists(active_request))
         )

@@ -38,7 +38,7 @@ def test_cannot_offer_someone_elses_listing(client_for, seller, buyer, make_user
     assert _request(client_for(buyer), listing, offered_listing=third.id).status_code == 400
 
 
-def test_full_happy_path(client_for, seller, buyer, make_user, make_listing, location, future_time):
+def test_full_happy_path(client_for, seller, buyer, make_user, make_listing):
     listing = make_listing(seller)
     rival = make_user()
     exchange_id = _request(client_for(buyer), listing).data["id"]
@@ -46,27 +46,17 @@ def test_full_happy_path(client_for, seller, buyer, make_user, make_listing, loc
     seller_client = client_for(seller)
 
     # Buyer cannot accept on the seller's behalf.
-    resp = client_for(buyer).post(
-        f"/api/exchanges/{exchange_id}/accept/",
-        {"meetup_location": location.id, "meetup_time": future_time},
-    )
+    resp = client_for(buyer).post(f"/api/exchanges/{exchange_id}/accept/")
     assert resp.status_code == 403
 
-    resp = seller_client.post(
-        f"/api/exchanges/{exchange_id}/accept/",
-        {"meetup_location": location.id, "meetup_time": future_time},
-    )
+    resp = seller_client.post(f"/api/exchanges/{exchange_id}/accept/")
     assert resp.status_code == 200, resp.data
     assert resp.data["status"] == "accepted"
-    assert resp.data["meetup_location_detail"]["name"] == "Main Library"
     listing.refresh_from_db()
     assert listing.status == Listing.Status.RESERVED
 
     # Book is reserved, so the rival's request cannot also be accepted.
-    resp = seller_client.post(
-        f"/api/exchanges/{rival_id}/accept/",
-        {"meetup_location": location.id, "meetup_time": future_time},
-    )
+    resp = seller_client.post(f"/api/exchanges/{rival_id}/accept/")
     assert resp.status_code == 400
     assert resp.data == {"detail": "This listing is no longer available."}
 
@@ -76,30 +66,22 @@ def test_full_happy_path(client_for, seller, buyer, make_user, make_listing, loc
     assert ExchangeRequest.objects.get(pk=rival_id).status == "rejected"
 
 
-def test_cancel_accepted_releases_listing(
-    client_for, seller, buyer, make_listing, location, future_time
-):
+def test_cancel_accepted_releases_listing(client_for, seller, buyer, make_listing):
     listing = make_listing(seller)
     exchange_id = _request(client_for(buyer), listing).data["id"]
-    client_for(seller).post(
-        f"/api/exchanges/{exchange_id}/accept/",
-        {"meetup_location": location.id, "meetup_time": future_time},
-    )
+    client_for(seller).post(f"/api/exchanges/{exchange_id}/accept/")
     assert client_for(buyer).post(f"/api/exchanges/{exchange_id}/cancel/").status_code == 200
     listing.refresh_from_db()
     assert listing.status == Listing.Status.AVAILABLE
 
 
 def test_swap_reserves_and_completes_both_books(
-    client_for, seller, buyer, make_listing, other_book, location, future_time
+    client_for, seller, buyer, make_listing, other_book
 ):
     wanted = make_listing(seller, listing_type="exchange", price=None)
     offered = make_listing(buyer, book=other_book)
     exchange_id = _request(client_for(buyer), wanted, offered_listing=offered.id).data["id"]
-    client_for(seller).post(
-        f"/api/exchanges/{exchange_id}/accept/",
-        {"meetup_location": location.id, "meetup_time": future_time},
-    )
+    client_for(seller).post(f"/api/exchanges/{exchange_id}/accept/")
     offered.refresh_from_db()
     assert offered.status == Listing.Status.RESERVED
     client_for(seller).post(f"/api/exchanges/{exchange_id}/complete/")
@@ -108,7 +90,7 @@ def test_swap_reserves_and_completes_both_books(
 
 
 def test_completing_swap_rejects_other_requests_offering_the_same_book(
-    client_for, seller, buyer, make_user, make_listing, other_book, location, future_time
+    client_for, seller, buyer, make_user, make_listing, other_book
 ):
     wanted = make_listing(seller, listing_type="exchange", price=None)
     elsewhere = make_listing(make_user(), listing_type="exchange", price=None)
@@ -117,29 +99,9 @@ def test_completing_swap_rejects_other_requests_offering_the_same_book(
     swap_id = _request(buyer_client, wanted, offered_listing=offered.id).data["id"]
     other_id = _request(buyer_client, elsewhere, offered_listing=offered.id).data["id"]
 
-    client_for(seller).post(
-        f"/api/exchanges/{swap_id}/accept/",
-        {"meetup_location": location.id, "meetup_time": future_time},
-    )
+    client_for(seller).post(f"/api/exchanges/{swap_id}/accept/")
     client_for(seller).post(f"/api/exchanges/{swap_id}/complete/")
     assert ExchangeRequest.objects.get(pk=other_id).status == "rejected"
-
-
-def test_accept_requires_future_time_and_active_location(
-    client_for, seller, buyer, make_listing, location
-):
-    listing = make_listing(seller)
-    exchange_id = _request(client_for(buyer), listing).data["id"]
-    url = f"/api/exchanges/{exchange_id}/accept/"
-    client = client_for(seller)
-    past = "2000-01-01T10:00:00Z"
-    assert (
-        client.post(url, {"meetup_location": location.id, "meetup_time": past}).status_code == 400
-    )
-    location.is_active = False
-    location.save()
-    resp = client.post(url, {"meetup_location": location.id, "meetup_time": "2999-01-01T10:00Z"})
-    assert resp.status_code == 400
 
 
 def test_exchanges_are_private_and_filterable(client_for, seller, buyer, make_user, make_listing):

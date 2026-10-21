@@ -1,17 +1,10 @@
-from django.utils import timezone
 from rest_framework import serializers
 
 from accounts.serializers import PublicUserSerializer
 from books.models import Listing
 from books.serializers import ListingSerializer
 
-from .models import ExchangeRequest, MeetupLocation
-
-
-class MeetupLocationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = MeetupLocation
-        fields = ["id", "name", "description"]
+from .models import ExchangeRequest
 
 
 class ExchangeRequestSerializer(serializers.ModelSerializer):
@@ -19,7 +12,6 @@ class ExchangeRequestSerializer(serializers.ModelSerializer):
     seller = PublicUserSerializer(source="listing.seller", read_only=True)
     listing_detail = ListingSerializer(source="listing", read_only=True)
     offered_listing_detail = ListingSerializer(source="offered_listing", read_only=True)
-    meetup_location_detail = MeetupLocationSerializer(source="meetup_location", read_only=True)
     role = serializers.SerializerMethodField()
 
     class Meta:
@@ -36,9 +28,6 @@ class ExchangeRequestSerializer(serializers.ModelSerializer):
             "offered_listing_detail",
             "message",
             "status",
-            "meetup_location",
-            "meetup_location_detail",
-            "meetup_time",
             "responded_at",
             "completed_at",
             "created_at",
@@ -46,8 +35,6 @@ class ExchangeRequestSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             "status",
-            "meetup_location",
-            "meetup_time",
             "responded_at",
             "completed_at",
             "created_at",
@@ -93,15 +80,3 @@ class ExchangeRequestSerializer(serializers.ModelSerializer):
         if listing.listing_type == Listing.ListingType.DONATE:
             attrs["offered_price"] = None
         return attrs
-
-
-class AcceptExchangeSerializer(serializers.Serializer):
-    meetup_location = serializers.PrimaryKeyRelatedField(
-        queryset=MeetupLocation.objects.filter(is_active=True)
-    )
-    meetup_time = serializers.DateTimeField()
-
-    def validate_meetup_time(self, value):
-        if value <= timezone.now():
-            raise serializers.ValidationError("Meetup time must be in the future.")
-        return value

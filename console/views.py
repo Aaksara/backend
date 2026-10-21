@@ -7,7 +7,7 @@ from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from rest_framework import mixins, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
@@ -21,7 +21,7 @@ from cms import services as cms_services
 from cms.content import CONTENT_SERIALIZERS
 from cms.defaults import add_default_slides
 from cms.models import HomeSection, Slide
-from exchanges.models import ExchangeRequest, MeetupLocation
+from exchanges.models import ExchangeRequest
 from utilities.permission import IsSuperAdmin
 
 from . import serializers
@@ -236,22 +236,6 @@ class HomeSectionContentView(SuperAdminMixin, APIView):
         section.content = content
         section.save(update_fields=["content"])
         return Response(serializers.HomeSectionSerializer(section).data)
-
-
-class MeetupLocationViewSet(
-    SuperAdminMixin,
-    mixins.ListModelMixin,
-    mixins.CreateModelMixin,
-    mixins.UpdateModelMixin,
-    viewsets.GenericViewSet,
-):
-    """All meetup spots, including retired ones. Spots are retired, never deleted,
-    because past exchanges still point at them."""
-
-    serializer_class = serializers.MeetupLocationAdminSerializer
-    pagination_class = None
-    filter_backends = []
-    queryset = MeetupLocation.objects.order_by("-is_active", "name")
 
 
 class CampusView(SuperAdminMixin, APIView):

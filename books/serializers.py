@@ -106,7 +106,6 @@ class ListingSerializer(serializers.ModelSerializer):
             "price",
             "description",
             "course_code",
-            "preferred_location",
             "status",
             "images",
             "created_at",
@@ -121,11 +120,6 @@ class ListingSerializer(serializers.ModelSerializer):
         if self.instance is not None and book != self.instance.book:
             raise serializers.ValidationError("The book of a listing cannot be changed.")
         return book
-
-    def validate_preferred_location(self, location):
-        if location is not None and not location.is_active:
-            raise serializers.ValidationError("This meetup location is no longer available.")
-        return location
 
     def validate_course_code(self, value):
         return value.strip().upper()

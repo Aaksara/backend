@@ -71,13 +71,6 @@ class Listing(TimeStampedModel):
     )
     description = models.TextField(blank=True)
     course_code = models.CharField(max_length=30, blank=True, db_index=True)
-    preferred_location = models.ForeignKey(
-        "exchanges.MeetupLocation",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="listings",
-    )
     status = models.CharField(
         max_length=10, choices=Status.choices, default=Status.AVAILABLE, db_index=True
     )

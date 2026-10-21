@@ -1,15 +1,12 @@
-from datetime import timedelta
 from decimal import Decimal
 
 import pytest
 from django.core.cache import cache
-from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.models import User
 from books.models import Book, Listing
-from exchanges.models import MeetupLocation
 
 PASSWORD = "S3cure-pass-phrase"
 
@@ -88,13 +85,3 @@ def make_listing(book):
         return Listing.objects.create(seller=seller, **kwargs)
 
     return _make
-
-
-@pytest.fixture
-def location(db):
-    return MeetupLocation.objects.create(name="Main Library")
-
-
-@pytest.fixture
-def future_time():
-    return (timezone.now() + timedelta(days=1)).isoformat()

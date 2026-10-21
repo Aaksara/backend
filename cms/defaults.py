@@ -34,7 +34,7 @@ DEFAULT_SLIDES = {
         ),
         (
             "safety-meetup.svg",
-            "Meet at approved campus spots",
+            "Hand books over in person",
             "Two students meeting outside a campus library marked with a map pin",
         ),
         (

@@ -1,7 +1,7 @@
 # AKSARA backend
 
 Django API for a campus textbook exchange. Students sign up with a university email,
-list books by ISBN, chat with sellers, and agree on an on-campus meetup. Payment happens
+list books, chat with sellers, and hand books over in person on campus. Payment happens
 in person.
 
 Stack: Django, Django REST Framework, PostgreSQL (Prisma Postgres in production), and
@@ -20,7 +20,6 @@ pip install -r requirements-dev.txt
 cp .env.example .env
 docker compose up -d db
 python manage.py migrate
-python manage.py seed_meetup_locations
 python manage.py createsuperuser
 python manage.py runserver
 ```
@@ -41,8 +40,8 @@ ruff check . && ruff format --check .
 ```
 core/        Django project: settings, URLs, WSGI (Vercel entry point)
 accounts/    users, sign-up, email verification, JWT login
-books/       books (ISBN lookup) and listings
-exchanges/   exchange requests and meetup locations
+books/       books (by title, or by ISBN lookup) and listings
+exchanges/   exchange requests: request, accept, hand over
 chat/        conversations and messages
 cms/         storefront content: home page slides and sections, plus their public read API
 console/     the admin console's API under /api/admin/, for the super admin only
@@ -117,11 +116,10 @@ vercel.json  runs core/wsgi.py on Vercel's Python runtime
    When a migration drops or renames a column, release the code that stops using it first,
    and the migration in a later release.
 
-5. **First run.** Seed the meetup locations and create the super admin, who signs in to the
+5. **First run.** Seed the slides and create the super admin, who signs in to the
    frontend's `/admin`:
 
    ```bash
-   DATABASE_URL='<prisma direct url>' python manage.py seed_meetup_locations
    # With the AWS_* storage variables set too, so the images go to the bucket:
    DATABASE_URL='<prisma direct url>' python manage.py seed_slides
    DATABASE_URL='<prisma direct url>' python manage.py createsuperuser
