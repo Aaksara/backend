@@ -27,3 +27,14 @@ class VisibleHomeSectionList(APIView):
     def get(self, request):
         kinds = HomeSection.objects.filter(is_enabled=True).values_list("kind", flat=True)
         return Response(list(kinds))
+
+
+class HomeContentView(APIView):
+    """The text the admin has saved for each section, e.g. {"hero": {...}}. Sections left
+    out use the site's built-in text."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        saved = HomeSection.objects.exclude(content={}).values_list("kind", "content")
+        return Response(dict(saved))

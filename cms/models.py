@@ -56,6 +56,11 @@ class HomeSection(models.Model):
     kind = models.CharField(max_length=20, choices=Kind.choices, unique=True)
     is_enabled = models.BooleanField(default=True)
     position = models.PositiveIntegerField()
+    content = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="The section's text, as in cms/content.py. Empty shows the built-in text.",
+    )
 
     class Meta:
         ordering = ["position"]
