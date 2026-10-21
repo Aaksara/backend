@@ -1,4 +1,4 @@
-"""Django settings for the Student Book Exchange backend.
+"""Django settings for the AKSARA backend.
 
 All environment-specific values are read from environment variables (or a local
 `.env` file); see `.env.example` for the full list.

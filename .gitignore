@@ -2,7 +2,6 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
-.env
 *.log
 media/
 staticfiles/
@@ -11,7 +10,10 @@ staticfiles/
 .coverage
 docker-compose.override.yml
 
+# env (only .env.example is committed)
+.env
+.env.*
+!.env.example
+
 # Created by `vercel link`; holds this machine's project link.
 .vercel/
-.vercel
-.env*
