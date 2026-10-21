@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Count, Q
 from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
@@ -17,6 +18,7 @@ from accounts.emails import EmailNotSent, send_verification_email
 from accounts.tokens import revoke_refresh_tokens
 from books.models import Listing
 from cms import services as cms_services
+from cms.content import CONTENT_SERIALIZERS
 from cms.defaults import add_default_slides
 from cms.models import HomeSection, Slide
 from exchanges.models import ExchangeRequest, MeetupLocation
@@ -215,6 +217,25 @@ class HomeSectionsView(SuperAdminMixin, APIView):
         serializer.is_valid(raise_exception=True)
         cms_services.save_home_sections(serializer.validated_data["sections"])
         return self.get(request)
+
+
+class HomeSectionContentView(SuperAdminMixin, APIView):
+    """PUT a section's text, every field filled in (see cms/content.py). DELETE goes back
+    to the site's built-in text."""
+
+    def put(self, request, kind):
+        section = get_object_or_404(HomeSection, kind=kind)
+        content = CONTENT_SERIALIZERS[section.kind](data=request.data)
+        content.is_valid(raise_exception=True)
+        return self._save(section, content.validated_data)
+
+    def delete(self, request, kind):
+        return self._save(get_object_or_404(HomeSection, kind=kind), {})
+
+    def _save(self, section, content):
+        section.content = content
+        section.save(update_fields=["content"])
+        return Response(serializers.HomeSectionSerializer(section).data)
 
 
 class MeetupLocationViewSet(

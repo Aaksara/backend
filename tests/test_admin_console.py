@@ -7,6 +7,7 @@ from PIL import Image
 
 from accounts.models import User
 from books.models import Listing
+from cms.content import CONTENT_SERIALIZERS
 from cms.models import HomeSection, Slide
 from exchanges import services
 from exchanges.models import ExchangeRequest, MeetupLocation
@@ -69,6 +70,7 @@ def test_me_tells_the_console_who_is_super_admin(admin_client, client_for, make_
         "/api/admin/students/summary/",
         "/api/admin/slides/",
         "/api/admin/home-sections/",
+        "/api/admin/home-sections/hero/content/",
         "/api/admin/meetup-locations/",
         "/api/admin/campus/",
     ],
@@ -424,6 +426,74 @@ def test_save_needs_every_section_once(admin_client, kinds):
     resp = admin_client.put("/api/admin/home-sections/", {"sections": sections}, format="json")
 
     assert resp.status_code == 400
+
+
+CTA_CONTENT = {"eyebrow": "Join", "title": "Got books?", "description": "Sign up today."}
+
+HOW_IT_WORKS_CONTENT = {
+    "eyebrow": "Steps",
+    "title": "How it works",
+    "description": "Three steps.",
+    "items": [{"title": f"Step {n}", "text": "Do it.", "note": "Easy"} for n in range(3)],
+}
+
+
+def test_section_content_is_saved_and_shown_publicly(admin_client, client_for):
+    url = "/api/admin/home-sections/how_it_works/content/"
+
+    saved = admin_client.put(url, HOW_IT_WORKS_CONTENT, format="json")
+    listed = admin_client.get("/api/admin/home-sections/")
+    public = client_for().get("/api/cms/home-content/")
+
+    assert saved.status_code == 200
+    assert saved.data["content"] == HOW_IT_WORKS_CONTENT
+    assert {row["kind"]: row["content"] for row in listed.data}["hero"] == {}
+    assert public.data == {"how_it_works": HOW_IT_WORKS_CONTENT}
+
+
+def test_reset_goes_back_to_the_built_in_text(admin_client, client_for):
+    url = "/api/admin/home-sections/call_to_action/content/"
+    admin_client.put(url, CTA_CONTENT, format="json")
+
+    reset = admin_client.delete(url)
+
+    assert reset.data["content"] == {}
+    assert client_for().get("/api/cms/home-content/").data == {}
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        {**HOW_IT_WORKS_CONTENT, "title": ""},
+        {**HOW_IT_WORKS_CONTENT, "items": HOW_IT_WORKS_CONTENT["items"][:2]},
+        {**HOW_IT_WORKS_CONTENT, "items": [{"title": "No text"}] * 3},
+        {**HOW_IT_WORKS_CONTENT, "description": "x" * 301},
+        {**HOW_IT_WORKS_CONTENT, "items": [{"title": "Same", "text": "T", "note": "N"}] * 3},
+    ],
+)
+def test_section_content_must_be_complete(admin_client, content):
+    url = "/api/admin/home-sections/how_it_works/content/"
+
+    assert admin_client.put(url, content, format="json").status_code == 400
+
+
+def test_saving_the_order_keeps_the_content(admin_client):
+    admin_client.put("/api/admin/home-sections/call_to_action/content/", CTA_CONTENT, format="json")
+    sections = [{"kind": kind, "is_enabled": True} for kind in HomeSection.Kind.values]
+
+    saved = admin_client.put("/api/admin/home-sections/", {"sections": sections}, format="json")
+
+    assert {row["kind"]: row["content"] for row in saved.data}["call_to_action"] == CTA_CONTENT
+
+
+def test_unknown_section_content_is_not_found(admin_client):
+    url = "/api/admin/home-sections/footer/content/"
+
+    assert admin_client.put(url, CTA_CONTENT, format="json").status_code == 404
+
+
+def test_every_section_kind_has_editable_content():
+    assert set(CONTENT_SERIALIZERS) == set(HomeSection.Kind)
 
 
 # --- Campus -------------------------------------------------------------------------------

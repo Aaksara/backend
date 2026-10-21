@@ -10,6 +10,11 @@ router.register("meetup-locations", views.MeetupLocationViewSet, basename="admin
 
 urlpatterns = [
     path("home-sections/", views.HomeSectionsView.as_view(), name="admin-home-sections"),
+    path(
+        "home-sections/<str:kind>/content/",
+        views.HomeSectionContentView.as_view(),
+        name="admin-home-section-content",
+    ),
     path("campus/", views.CampusView.as_view(), name="admin-campus"),
     *router.urls,
 ]

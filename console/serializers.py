@@ -146,7 +146,9 @@ class SlideOrderSerializer(serializers.Serializer):
 class HomeSectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = HomeSection
-        fields = ["kind", "is_enabled"]
+        fields = ["kind", "is_enabled", "content"]
+        # Content is saved per section (HomeSectionContentView), not with the order.
+        read_only_fields = ["content"]
         # Each kind is sent once on purpose; HomeSectionsSerializer checks the whole list.
         extra_kwargs = {"kind": {"validators": []}}
 
