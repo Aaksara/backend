@@ -265,3 +265,32 @@ def test_book_without_isbn():
     assert book.isbn_13 is None
     assert book.isbn_10 == ""
     assert str(book) == "Nepali Grammar"
+
+
+def test_visitors_browse_available_listings_without_sellers(client_for, seller, make_listing):
+    available = make_listing(seller)
+    reserved = make_listing(seller, status=Listing.Status.RESERVED)
+    withdrawn = make_listing(seller, status=Listing.Status.WITHDRAWN)
+    client = client_for()
+
+    resp = client.get("/api/listings/")
+    assert resp.status_code == 200
+    assert [row["id"] for row in resp.data["results"]] == [available.id]
+    row = resp.data["results"][0]
+    assert row["seller"] is None
+    assert row["is_owner"] is False
+    assert row["has_active_request"] is False
+
+    assert client.get(f"/api/listings/{reserved.id}/").status_code == 200
+    assert client.get(f"/api/listings/{withdrawn.id}/").status_code == 404
+    # Students still see who is selling.
+    assert client_for(seller).get(f"/api/listings/{available.id}/").data["seller"] is not None
+
+
+def test_visitors_cannot_list_or_change_books(client_for, seller, make_listing):
+    listing = make_listing(seller)
+    client = client_for()
+    assert client.get("/api/listings/mine/").status_code == 401
+    assert client.post("/api/listings/", listing_details()).status_code == 401
+    assert client.patch(f"/api/listings/{listing.id}/", {"price": "1.00"}).status_code == 401
+    assert client.delete(f"/api/listings/{listing.id}/").status_code == 401

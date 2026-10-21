@@ -208,3 +208,10 @@ class ViewerListingSerializer(ListingSerializer):
 
     class Meta(ListingSerializer.Meta):
         fields = [*ListingSerializer.Meta.fields, "has_active_request"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Students' names are for other students, not for anyone on the web.
+        if not self.context["request"].user.is_authenticated:
+            data["seller"] = None
+        return data
