@@ -17,7 +17,7 @@ DEFAULT_SLIDES = {
         ),
         (
             "hero-list.svg",
-            "List a book by its ISBN",
+            "List a book in a minute",
             "A phone showing a textbook's ISBN barcode beside a priced stack of books",
         ),
         (

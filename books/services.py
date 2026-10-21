@@ -1,4 +1,5 @@
-"""Fetch book metadata by ISBN from public catalogues (Open Library, then Google Books)."""
+"""The book catalogue: matching books by their details, and importing them by ISBN from public
+catalogues (Open Library, then Google Books)."""
 
 import logging
 
@@ -89,3 +90,16 @@ def get_or_fetch_book(isbn13: str):
         return None
     book, _ = Book.objects.get_or_create(isbn_13=isbn13, defaults=metadata)
     return book
+
+
+def find_or_create_book(title: str, authors: str = "", edition: str = "") -> Book:
+    """The catalogue entry with these details, compared ignoring case, or a new one.
+
+    Listings of the same book then share one entry, so searches and the admin see them together.
+    """
+    book = (
+        Book.objects.filter(title__iexact=title, authors__iexact=authors, edition__iexact=edition)
+        .order_by("pk")
+        .first()
+    )
+    return book or Book.objects.create(title=title, authors=authors, edition=edition)

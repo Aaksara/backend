@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Count, Min, Q
+from django.db.models import Count, Exists, Min, OuterRef, Q
 from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
@@ -9,6 +9,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 
+from exchanges.models import ExchangeRequest
 from exchanges.services import close_pending_requests
 from utilities.permission import IsSellerOrReadOnly
 
@@ -16,7 +17,7 @@ from . import services
 from .filters import ListingFilter
 from .isbn import InvalidISBN, to_isbn13
 from .models import Book, Listing, ListingImage
-from .serializers import BookSerializer, ListingImageSerializer, ListingSerializer
+from .serializers import BookSerializer, ListingImageSerializer, ViewerListingSerializer
 
 
 class BookViewSet(
@@ -68,7 +69,7 @@ class BookViewSet(
 
 
 class ListingViewSet(viewsets.ModelViewSet):
-    serializer_class = ListingSerializer
+    serializer_class = ViewerListingSerializer
     permission_classes = [IsAuthenticated, IsSellerOrReadOnly]
     filterset_class = ListingFilter
     search_fields = ["book__title", "book__authors", "book__isbn_13", "course_code", "description"]
@@ -76,9 +77,14 @@ class ListingViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        listings = Listing.objects.select_related(
-            "book", "seller", "preferred_location"
-        ).prefetch_related("images")
+        active_request = ExchangeRequest.objects.filter(
+            listing=OuterRef("pk"), requester=user, status__in=ExchangeRequest.ACTIVE_STATUSES
+        )
+        listings = (
+            Listing.objects.select_related("book", "seller", "preferred_location")
+            .prefetch_related("images")
+            .annotate(has_active_request=Exists(active_request))
+        )
 
         if self.action == "mine":
             return listings.filter(seller=user)

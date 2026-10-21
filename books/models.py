@@ -8,9 +8,10 @@ from .isbn import to_isbn10
 
 
 class Book(TimeStampedModel):
-    """A catalogue entry (an edition), shared by every listing of that ISBN."""
+    """A catalogue entry (an edition), shared by every listing of that book."""
 
-    isbn_13 = models.CharField(max_length=13, unique=True)
+    # Many local textbooks have no ISBN; those are told apart by title, authors and edition.
+    isbn_13 = models.CharField(max_length=13, unique=True, null=True, blank=True)
     isbn_10 = models.CharField(max_length=10, blank=True)
     title = models.CharField(max_length=300)
     subtitle = models.CharField(max_length=300, blank=True)
@@ -27,10 +28,10 @@ class Book(TimeStampedModel):
         indexes = [models.Index(fields=["title"])]
 
     def __str__(self):
-        return f"{self.title} ({self.isbn_13})"
+        return f"{self.title} ({self.isbn_13})" if self.isbn_13 else self.title
 
     def save(self, *args, **kwargs):
-        self.isbn_10 = to_isbn10(self.isbn_13) or ""
+        self.isbn_10 = (self.isbn_13 and to_isbn10(self.isbn_13)) or ""
         super().save(*args, **kwargs)
 
 
