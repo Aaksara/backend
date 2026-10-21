@@ -62,3 +62,34 @@ def test_existing_banners_and_section_order_survive_the_simplification():
         assert all(s.is_enabled for s in home)
     finally:
         migrate(MigrationExecutor(connection).loader.graph.leaf_nodes())
+
+
+@pytest.mark.django_db(transaction=True)
+def test_meetup_spot_copy_changes_only_where_untouched():
+    old = migrate([("cms", "0006_slide_caption_without_isbn")])
+    slides = old.get_model("cms", "Slide").objects
+    slides.create(slider="home_safety", caption="Meet at approved campus spots", image="a.png")
+    slides.create(slider="home_safety", caption="Meet by the old gym", image="b.png")
+    old.get_model("cms", "HomeSection").objects.update_or_create(
+        kind="hero",
+        defaults={
+            "position": 0,
+            "content": {
+                "title": "Our own title",
+                "items": [
+                    {"title": "Meet at approved campus spots"},
+                    {"title": "Sell, swap or donate"},
+                ],
+            },
+        },
+    )
+
+    new = migrate([("cms", "0007_copy_without_meetup_spots")])
+
+    captions = set(new.get_model("cms", "Slide").objects.values_list("caption", flat=True))
+    assert captions == {"Hand books over in person", "Meet by the old gym"}
+    content = new.get_model("cms", "HomeSection").objects.get(kind="hero").content
+    assert content == {
+        "title": "Our own title",
+        "items": [{"title": "Hand books over in person"}, {"title": "Sell, swap or donate"}],
+    }

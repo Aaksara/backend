@@ -1,10 +1,8 @@
-from django.db.models import Count, Q
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from . import services
-from .models import Conversation
 from .serializers import ConversationSerializer, MessageSerializer
 
 
@@ -20,21 +18,13 @@ class ConversationViewSet(
     filterset_fields = ["listing"]
 
     def get_queryset(self):
-        user = self.request.user
-        unread = Q(messages__read_at__isnull=True) & ~Q(messages__sender=user)
-        return (
-            Conversation.objects.filter(Q(buyer=user) | Q(seller=user))
-            .select_related("listing__book", "buyer", "seller", "last_message")
-            .annotate(unread_count=Count("messages", filter=unread))
-            .order_by("-updated_at")
-        )
+        return services.conversations_for(self.request.user)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        listing = serializer.validated_data["listing"]
-        conversation, created = Conversation.objects.get_or_create(
-            listing=listing, buyer=request.user, defaults={"seller": listing.seller}
+        conversation, created = services.open_conversation(
+            serializer.validated_data["listing"], request.user
         )
         data = self.get_serializer(self.get_queryset().get(pk=conversation.pk)).data
         return Response(data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
@@ -53,6 +43,11 @@ class ConversationViewSet(
 
         page = self.paginate_queryset(conversation.messages.all())
         return self.get_paginated_response(MessageSerializer(page, many=True).data)
+
+    @action(detail=False, methods=["get"])
+    def unread(self, request):
+        """How many messages from others the user has not read, across all conversations."""
+        return Response({"unread": services.unread_total(request.user)})
 
     @action(detail=True, methods=["post"])
     def read(self, request, pk=None):

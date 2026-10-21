@@ -1,14 +1,15 @@
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Count, Min, Q
+from django.db.models import Count, Exists, Min, OuterRef, Q, Value
 from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAdminUser, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
+from exchanges.models import ExchangeRequest
 from exchanges.services import close_pending_requests
 from utilities.permission import IsSellerOrReadOnly
 
@@ -16,7 +17,7 @@ from . import services
 from .filters import ListingFilter
 from .isbn import InvalidISBN, to_isbn13
 from .models import Book, Listing, ListingImage
-from .serializers import BookSerializer, ListingImageSerializer, ListingSerializer
+from .serializers import BookSerializer, ListingImageSerializer, ViewerListingSerializer
 
 
 class BookViewSet(
@@ -68,22 +69,32 @@ class BookViewSet(
 
 
 class ListingViewSet(viewsets.ModelViewSet):
-    serializer_class = ListingSerializer
-    permission_classes = [IsAuthenticated, IsSellerOrReadOnly]
+    """Anyone may browse the available listings; only students list and change them."""
+
+    serializer_class = ViewerListingSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly, IsSellerOrReadOnly]
     filterset_class = ListingFilter
     search_fields = ["book__title", "book__authors", "book__isbn_13", "course_code", "description"]
     ordering_fields = ["created_at", "price"]
 
     def get_queryset(self):
         user = self.request.user
-        listings = Listing.objects.select_related(
-            "book", "seller", "preferred_location"
-        ).prefetch_related("images")
+        listings = Listing.objects.select_related("book", "seller").prefetch_related("images")
 
-        if self.action == "mine":
-            return listings.filter(seller=user)
-        # Withdrawn listings are only visible to their seller.
-        listings = listings.filter(~Q(status=Listing.Status.WITHDRAWN) | Q(seller=user))
+        if user.is_authenticated:
+            active_request = ExchangeRequest.objects.filter(
+                listing=OuterRef("pk"), requester=user, status__in=ExchangeRequest.ACTIVE_STATUSES
+            )
+            listings = listings.annotate(has_active_request=Exists(active_request))
+            if self.action == "mine":
+                return listings.filter(seller=user)
+            # Withdrawn listings are only visible to their seller.
+            listings = listings.filter(~Q(status=Listing.Status.WITHDRAWN) | Q(seller=user))
+        else:
+            listings = listings.annotate(has_active_request=Value(False)).exclude(
+                status=Listing.Status.WITHDRAWN
+            )
+
         # Browsing defaults to what can actually be requested right now.
         if self.action == "list" and "status" not in self.request.query_params:
             listings = listings.filter(status=Listing.Status.AVAILABLE)
@@ -114,7 +125,7 @@ class ListingViewSet(viewsets.ModelViewSet):
             return
         instance.delete()
 
-    @action(detail=False, methods=["get"])
+    @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
     def mine(self, request):
         """All of the current user's listings, in any status."""
         return self.list(request)

@@ -3,6 +3,7 @@ from decimal import Decimal
 import pytest
 
 from books.models import Book, Listing
+from exchanges.models import ExchangeRequest
 
 pytestmark = pytest.mark.django_db
 
@@ -171,3 +172,125 @@ def test_book_catalog_annotations(client_for, buyer, seller, make_listing, book)
     resp = client_for(buyer).get(f"/api/books/{book.id}/")
     assert resp.data["available_listings"] == 2
     assert Decimal(resp.data["lowest_price"]) == Decimal("12")
+
+
+def test_listings_flag_the_viewers_active_request(client_for, seller, buyer, make_listing):
+    requested = make_listing(seller)
+    declined = make_listing(seller)
+    untouched = make_listing(seller)
+    ExchangeRequest.objects.create(listing=requested, requester=buyer)
+    ExchangeRequest.objects.create(
+        listing=declined, requester=buyer, status=ExchangeRequest.Status.REJECTED
+    )
+
+    flags = {
+        row["id"]: row["has_active_request"]
+        for row in client_for(buyer).get("/api/listings/").data["results"]
+    }
+    assert flags == {requested.id: True, declined.id: False, untouched.id: False}
+    # Another student's request is not the seller's.
+    seller_view = client_for(seller).get(f"/api/listings/{requested.id}/").data
+    assert seller_view["has_active_request"] is False
+
+
+def listing_details(**changes):
+    return {
+        "title": "Principles of Management",
+        "authors": "Kishor Bahadur Pradhan",
+        "edition": "3rd",
+        "condition": "good",
+        "listing_type": "sell",
+        "price": "450",
+        **changes,
+    }
+
+
+def test_create_listing_from_book_details(client_for, seller, buyer):
+    resp = client_for(seller).post("/api/listings/", listing_details())
+    assert resp.status_code == 201, resp.data
+    assert resp.data["book"]["title"] == "Principles of Management"
+    assert resp.data["book"]["isbn_13"] is None
+
+    # The same book typed differently is the same catalogue entry.
+    again = client_for(buyer).post(
+        "/api/listings/",
+        listing_details(title="  principles of  MANAGEMENT ", authors="kishor bahadur pradhan"),
+    )
+    assert again.status_code == 201, again.data
+    assert again.data["book"]["id"] == resp.data["book"]["id"]
+    assert Book.objects.count() == 1
+
+
+def test_listing_needs_a_book(client_for, seller, book):
+    client = client_for(seller)
+    missing = client.post("/api/listings/", listing_details(title=""))
+    assert missing.status_code == 400
+    assert "title" in missing.data
+
+    both = client.post("/api/listings/", listing_details(book_id=book.id))
+    assert both.status_code == 400
+    assert "book_id" in both.data
+
+
+def test_seller_can_correct_book_details(client_for, seller):
+    client = client_for(seller)
+    created = client.post("/api/listings/", listing_details()).data
+    resp = client.patch(f"/api/listings/{created['id']}/", {"title": "Principles of Marketing"})
+    assert resp.status_code == 200, resp.data
+    assert resp.data["book"]["title"] == "Principles of Marketing"
+    # Fields left out keep their value.
+    assert resp.data["book"]["authors"] == "Kishor Bahadur Pradhan"
+
+
+def test_book_details_are_locked_while_requested(client_for, seller, buyer):
+    client = client_for(seller)
+    created = client.post("/api/listings/", listing_details()).data
+    ExchangeRequest.objects.create(listing_id=created["id"], requester=buyer)
+
+    changed = client.patch(f"/api/listings/{created['id']}/", {"title": "Something else"})
+    assert changed.status_code == 400
+    assert "title" in changed.data
+
+    # Saving the form unchanged, e.g. to edit the price, still works.
+    unchanged = client.patch(
+        f"/api/listings/{created['id']}/",
+        {"title": "principles of management", "price": "400"},
+    )
+    assert unchanged.status_code == 200, unchanged.data
+    assert unchanged.data["price"] == "400.00"
+
+
+def test_book_without_isbn():
+    book = Book.objects.create(title="Nepali Grammar")
+    assert book.isbn_13 is None
+    assert book.isbn_10 == ""
+    assert str(book) == "Nepali Grammar"
+
+
+def test_visitors_browse_available_listings_without_sellers(client_for, seller, make_listing):
+    available = make_listing(seller)
+    reserved = make_listing(seller, status=Listing.Status.RESERVED)
+    withdrawn = make_listing(seller, status=Listing.Status.WITHDRAWN)
+    client = client_for()
+
+    resp = client.get("/api/listings/")
+    assert resp.status_code == 200
+    assert [row["id"] for row in resp.data["results"]] == [available.id]
+    row = resp.data["results"][0]
+    assert row["seller"] is None
+    assert row["is_owner"] is False
+    assert row["has_active_request"] is False
+
+    assert client.get(f"/api/listings/{reserved.id}/").status_code == 200
+    assert client.get(f"/api/listings/{withdrawn.id}/").status_code == 404
+    # Students still see who is selling.
+    assert client_for(seller).get(f"/api/listings/{available.id}/").data["seller"] is not None
+
+
+def test_visitors_cannot_list_or_change_books(client_for, seller, make_listing):
+    listing = make_listing(seller)
+    client = client_for()
+    assert client.get("/api/listings/mine/").status_code == 401
+    assert client.post("/api/listings/", listing_details()).status_code == 401
+    assert client.patch(f"/api/listings/{listing.id}/", {"price": "1.00"}).status_code == 401
+    assert client.delete(f"/api/listings/{listing.id}/").status_code == 401

@@ -4,7 +4,6 @@ from rest_framework import serializers
 
 from books.models import Listing
 from cms.models import HomeSection, Slide
-from exchanges.models import MeetupLocation
 from utilities.validators import validate_image_size
 
 from .activity import Kind, Role
@@ -161,9 +160,3 @@ class HomeSectionsSerializer(serializers.Serializer):
         if sorted(kinds) != sorted(HomeSection.Kind.values):
             raise serializers.ValidationError("Send every home page section exactly once.")
         return sections
-
-
-class MeetupLocationAdminSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = MeetupLocation
-        fields = ["id", "name", "description", "is_active"]

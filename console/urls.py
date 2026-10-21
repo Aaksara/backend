@@ -6,7 +6,6 @@ from . import views
 router = DefaultRouter()
 router.register("students", views.StudentViewSet, basename="admin-student")
 router.register("slides", views.SlideViewSet, basename="admin-slide")
-router.register("meetup-locations", views.MeetupLocationViewSet, basename="admin-meetup-location")
 
 urlpatterns = [
     path("home-sections/", views.HomeSectionsView.as_view(), name="admin-home-sections"),

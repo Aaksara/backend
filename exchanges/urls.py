@@ -1,9 +1,8 @@
 from rest_framework.routers import DefaultRouter
 
-from .views import ExchangeRequestViewSet, MeetupLocationViewSet
+from .views import ExchangeRequestViewSet
 
 router = DefaultRouter()
-router.register("meetup-locations", MeetupLocationViewSet, basename="meetup-location")
 router.register("exchanges", ExchangeRequestViewSet, basename="exchange")
 
 urlpatterns = router.urls

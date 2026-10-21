@@ -6,20 +6,6 @@ from django.db.models import Q
 from utilities.models import TimeStampedModel
 
 
-class MeetupLocation(models.Model):
-    """An approved on-campus spot for handing over books (managed by admins)."""
-
-    name = models.CharField(max_length=120, unique=True)
-    description = models.CharField(max_length=255, blank=True)
-    is_active = models.BooleanField(default=True)
-
-    class Meta:
-        ordering = ["name"]
-
-    def __str__(self):
-        return self.name
-
-
 class ExchangeRequest(TimeStampedModel):
     """A request from one student for another student's listing.
 
@@ -58,10 +44,6 @@ class ExchangeRequest(TimeStampedModel):
     status = models.CharField(
         max_length=10, choices=Status.choices, default=Status.PENDING, db_index=True
     )
-    meetup_location = models.ForeignKey(
-        MeetupLocation, on_delete=models.PROTECT, null=True, blank=True, related_name="+"
-    )
-    meetup_time = models.DateTimeField(null=True, blank=True)
     responded_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
 

@@ -43,7 +43,8 @@ def _set_listing_status(listing, status):
 
 
 @transaction.atomic
-def accept(exchange_id, user, meetup_location, meetup_time):
+def accept(exchange_id, user):
+    """Reserves the book for the requester. The two students arrange the handover."""
     exchange = _lock(exchange_id)
     if exchange.listing.seller_id != user.id:
         raise PermissionDenied("Only the seller can accept a request.")
@@ -57,8 +58,6 @@ def accept(exchange_id, user, meetup_location, meetup_time):
         raise ValidationError("The book offered in exchange no longer exists.")
 
     exchange.status = Status.ACCEPTED
-    exchange.meetup_location = meetup_location
-    exchange.meetup_time = meetup_time
     exchange.responded_at = timezone.now()
     exchange.save()
     _set_listing_status(exchange.listing, Listing.Status.RESERVED)
