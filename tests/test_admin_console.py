@@ -8,7 +8,8 @@ from PIL import Image
 from accounts.models import User
 from books.models import Listing
 from cms.models import HomeSection, Slide
-from exchanges.models import MeetupLocation
+from exchanges import services
+from exchanges.models import ExchangeRequest, MeetupLocation
 
 pytestmark = pytest.mark.django_db
 
@@ -152,6 +153,82 @@ def test_verify_and_resend_verification(admin_client, make_user, mailoutbox):
     assert len(mailoutbox) == 1
     assert verified.data["is_email_verified"] is True
     assert again.status_code == 400
+
+
+def test_unverify_signs_the_student_out(admin_client, client_for, buyer):
+    login = client_for().post(
+        "/api/auth/login/", {"email": buyer.email, "password": "S3cure-pass-phrase"}
+    )
+
+    unverified = admin_client.post(f"/api/admin/students/{buyer.pk}/unverify-email/")
+    refresh = client_for().post("/api/auth/token/refresh/", {"refresh": login.data["refresh"]})
+
+    assert unverified.data["is_email_verified"] is False
+    assert refresh.status_code == 401
+
+
+def test_student_listings_are_all_of_theirs_with_request_counts(
+    admin_client, seller, buyer, make_listing
+):
+    wanted = make_listing(seller)
+    make_listing(seller, status=Listing.Status.WITHDRAWN)
+    make_listing(buyer)
+    ExchangeRequest.objects.create(listing=wanted, requester=buyer)
+
+    every = admin_client.get(f"/api/admin/students/{seller.pk}/listings/")
+    withdrawn = admin_client.get(
+        f"/api/admin/students/{seller.pk}/listings/", {"status": "withdrawn"}
+    )
+    unknown = admin_client.get(f"/api/admin/students/{seller.pk}/listings/", {"status": "gone"})
+
+    assert every.data["count"] == 2
+    assert {row["id"]: row["request_count"] for row in every.data["results"]}[wanted.pk] == 1
+    assert [row["status"] for row in withdrawn.data["results"]] == ["withdrawn"]
+    assert unknown.status_code == 400
+
+
+def test_activity_tells_each_side_of_an_exchange(admin_client, seller, buyer, make_listing):
+    listing = make_listing(seller)
+    request = ExchangeRequest.objects.create(listing=listing, requester=buyer)
+    services.accept(request.pk, seller, meetup_location=None, meetup_time=None)
+    services.complete(request.pk, buyer)
+
+    def kinds(student):
+        events = admin_client.get(f"/api/admin/students/{student.pk}/activity/").data["results"]
+        return [(event["kind"], event["role"]) for event in events]
+
+    assert kinds(seller) == [
+        ("completed", "seller"),
+        ("accepted", "seller"),
+        ("requested", "seller"),
+        ("listed", "seller"),
+        ("joined", ""),
+    ]
+    assert kinds(buyer)[:3] == [
+        ("completed", "buyer"),
+        ("accepted", "buyer"),
+        ("requested", "buyer"),
+    ]
+
+
+def test_activity_pages_with_a_limit(admin_client, seller, make_listing):
+    for _ in range(3):
+        make_listing(seller)
+
+    first = admin_client.get(f"/api/admin/students/{seller.pk}/activity/", {"limit": 2}).data
+    whole = admin_client.get(f"/api/admin/students/{seller.pk}/activity/", {"limit": 10}).data
+
+    assert len(first["results"]) == 2
+    assert first["has_more"] is True
+    assert len(whole["results"]) == 4
+    assert whole["has_more"] is False
+
+
+def test_activity_limit_must_be_in_range(admin_client, seller):
+    url = f"/api/admin/students/{seller.pk}/activity/"
+
+    assert admin_client.get(url, {"limit": "many"}).status_code == 400
+    assert admin_client.get(url, {"limit": 501}).status_code == 400
 
 
 def test_export_is_csv_of_the_filtered_list_and_defuses_formulas(admin_client, make_user):

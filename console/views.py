@@ -23,6 +23,7 @@ from exchanges.models import ExchangeRequest, MeetupLocation
 from utilities.permission import IsSuperAdmin
 
 from . import serializers
+from .activity import student_activity
 from .exports import students_csv
 
 User = get_user_model()
@@ -103,13 +104,46 @@ class StudentViewSet(SuperAdminMixin, viewsets.ReadOnlyModelViewSet):
     def reactivate(self, request, pk=None):
         return self._set_active(True)
 
+    def _set_verified(self, is_verified):
+        student = self.get_object()
+        student.is_email_verified = is_verified
+        student.save(update_fields=["is_email_verified"])
+        if not is_verified:
+            # Unverified students cannot sign in, so end the sessions they already have.
+            revoke_refresh_tokens(student)
+        return Response(serializers.StudentDetailSerializer(self.get_object()).data)
+
     @action(detail=True, methods=["post"], url_path="verify-email")
     def verify_email(self, request, pk=None):
         """Marks the email verified, e.g. after checking a student's ID in person."""
-        student = self.get_object()
-        student.is_email_verified = True
-        student.save(update_fields=["is_email_verified"])
-        return Response(serializers.StudentDetailSerializer(self.get_object()).data)
+        return self._set_verified(True)
+
+    @action(detail=True, methods=["post"], url_path="unverify-email")
+    def unverify_email(self, request, pk=None):
+        """Withdraws verification, e.g. when it was granted by mistake. Signs the student out."""
+        return self._set_verified(False)
+
+    @action(detail=True)
+    def listings(self, request, pk=None):
+        """Every listing the student has posted, newest first. Narrow it with `?status=`."""
+        query = serializers.StudentListingQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        listings = serializers.student_listings(self.get_object())
+        if status_filter := query.validated_data.get("status"):
+            listings = listings.filter(status=status_filter)
+        page = self.paginate_queryset(listings)
+        return self.get_paginated_response(
+            serializers.StudentListingSerializer(page, many=True).data
+        )
+
+    @action(detail=True)
+    def activity(self, request, pk=None):
+        """The student's newest events. Raise `?limit=` (up to 500) to see further back."""
+        query = serializers.ActivityQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        events, has_more = student_activity(self.get_object(), query.validated_data["limit"])
+        data = serializers.ActivityEventSerializer(events, many=True).data
+        return Response({"results": data, "has_more": has_more})
 
     @action(detail=True, methods=["post"], url_path="resend-verification")
     def resend_verification(self, request, pk=None):
