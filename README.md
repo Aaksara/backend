@@ -81,34 +81,32 @@ vercel.json  runs core/wsgi.py on Vercel's Python runtime
 2. **Image storage.** Vercel has no lasting disk, so create an S3-compatible bucket, e.g.
    Cloudflare R2, and an access key for it.
 3. **Vercel project.** Import this repo. Framework preset: **Other**. `vercel.json` runs
-   `core/wsgi.py`. Add these environment variables (see `.env.example`):
+   `core/wsgi.py`. Under Settings → Environment Variables, set the variables from
+   `.env.example`, which explains each one. For production:
 
-   | Variable | Value |
-   | --- | --- |
-   | `DJANGO_DEBUG` | `false` |
-   | `DJANGO_SECRET_KEY` | a long random string |
-   | `DJANGO_ALLOWED_HOSTS` | the API domain, e.g. `aksara-api.vercel.app` |
-   | `DATABASE_URL` | the Prisma Postgres direct URL |
-   | `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS` | the frontend URL, e.g. `https://aksara.vercel.app` |
-   | `UNIVERSITY_EMAIL_DOMAINS` | your university's email domains |
-   | `AWS_STORAGE_BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_ENDPOINT_URL` | the bucket |
-   | `EMAIL_BACKEND` | `utilities.email_backend.BrevoEmailBackend` (Brevo drops SMTP logins from Vercel) |
-   | `BREVO_API_KEY` | a Brevo API key (`xkeysib-...`, under SMTP & API → API Keys) |
-   | `DEFAULT_FROM_EMAIL` | a sender verified in Brevo, e.g. `Akshara <you@example.com>` |
-   | `NUM_PROXIES` | `1` |
-   | `REDIS_URL` | optional, recommended: an Upstash Redis URL, so rate limits are shared |
+   - `DJANGO_DEBUG=false`, `NUM_PROXIES=1`
+   - `DJANGO_ALLOWED_HOSTS`: the API domain
+   - `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`: the frontend URL
+   - `UNIVERSITY_EMAIL_DOMAINS`, `DEFAULT_FROM_EMAIL` (a sender verified in Brevo)
+   - `EMAIL_BACKEND=utilities.email_backend.BrevoEmailBackend` (Brevo drops SMTP logins
+     from Vercel)
+   - `AWS_STORAGE_BUCKET_NAME`, `AWS_S3_ENDPOINT_URL`: the bucket
+
+   These are secrets. Keep them only in Vercel, never in a committed file:
+   `DJANGO_SECRET_KEY`, `DATABASE_URL`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`,
+   `BREVO_API_KEY` and `REDIS_URL` (optional, so rate limits are shared across instances).
+   `.env` and `.env.*` are git-ignored; only `.env.example`, with empty values, is
+   committed.
 
 4. **Releases.** Pushing to `main` runs `.github/workflows/ci.yml`: tests, then
    `migrate` on the production database, then the Vercel deploy, in that order, so code
    never goes live before its tables exist. Vercel's own deploys of `main` are switched off
    in `vercel.json`; other branches still get preview deploys. One-time setup, in the
-   GitHub repo under Settings → Secrets and variables → Actions:
+   GitHub repo, add these under Settings → Secrets and variables → Actions:
 
-   | Secret | Value |
-   | --- | --- |
-   | `PRODUCTION_DATABASE_URL` | the Prisma Postgres direct URL |
-   | `VERCEL_TOKEN` | a token from Vercel → Account Settings → Tokens |
-   | `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` | from `.vercel/project.json` after `vercel link` |
+   - `PRODUCTION_DATABASE_URL`: the Prisma Postgres direct URL
+   - `VERCEL_TOKEN`: from Vercel → Account Settings → Tokens
+   - `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`: from `.vercel/project.json` after `vercel link`
 
    Also create a `production` environment (Settings → Environments); add required
    reviewers there to approve each release by hand.
