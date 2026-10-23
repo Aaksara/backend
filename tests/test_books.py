@@ -1,6 +1,9 @@
 from decimal import Decimal
+from io import BytesIO
 
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
+from PIL import Image as PILImage
 
 from books.models import Book, Listing
 from exchanges.models import ExchangeRequest
@@ -294,3 +297,64 @@ def test_visitors_cannot_list_or_change_books(client_for, seller, make_listing):
     assert client.post("/api/listings/", listing_details()).status_code == 401
     assert client.patch(f"/api/listings/{listing.id}/", {"price": "1.00"}).status_code == 401
     assert client.delete(f"/api/listings/{listing.id}/").status_code == 401
+
+
+@pytest.fixture
+def photo(settings, tmp_path):
+    settings.MEDIA_ROOT = tmp_path
+
+    def _photo(name="cover.png", image_format="PNG"):
+        buffer = BytesIO()
+        PILImage.new("RGB", (30, 40), "teal").save(buffer, format=image_format)
+        return SimpleUploadedFile(name, buffer.getvalue())
+
+    return _photo
+
+
+def upload(client, listing, file):
+    return client.post(f"/api/listings/{listing.pk}/images/", {"image": file}, format="multipart")
+
+
+def test_photos_show_in_upload_order(client_for, seller, make_listing, photo):
+    listing = make_listing(seller)
+    client = client_for(seller)
+    front = upload(client, listing, photo("front.png"))
+    back = upload(client, listing, photo("back.png"))
+    assert front.status_code == back.status_code == 201
+
+    images = client_for().get("/api/listings/").data["results"][0]["images"]
+    assert [image["id"] for image in images] == [front.data["id"], back.data["id"]]
+    assert images[0]["image"].startswith("http://testserver/media/listings/")
+
+
+def test_only_the_seller_changes_photos(client_for, seller, buyer, make_listing, photo):
+    listing = make_listing(seller)
+    assert upload(client_for(buyer), listing, photo()).status_code == 403
+    assert upload(client_for(), listing, photo()).status_code == 401
+
+    image_id = upload(client_for(seller), listing, photo()).data["id"]
+    url = f"/api/listings/{listing.pk}/images/{image_id}/"
+    assert client_for(buyer).delete(url).status_code == 403
+    assert client_for(seller).delete(url).status_code == 204
+    assert not listing.images.exists()
+
+
+def test_photos_per_listing_are_limited(client_for, seller, make_listing, photo, settings):
+    settings.MAX_LISTING_IMAGES = 1
+    listing = make_listing(seller)
+    client = client_for(seller)
+    assert upload(client, listing, photo()).status_code == 201
+    assert upload(client, listing, photo()).status_code == 400
+
+
+def test_photo_must_be_an_image(client_for, seller, make_listing):
+    text = SimpleUploadedFile("notes.png", b"plain text", content_type="image/png")
+    resp = upload(client_for(seller), make_listing(seller), text)
+    assert resp.status_code == 400
+    assert "image" in resp.data
+
+
+def test_photo_must_be_in_a_web_format(client_for, seller, make_listing, photo):
+    resp = upload(client_for(seller), make_listing(seller), photo("scan.png", image_format="TIFF"))
+    assert resp.status_code == 400
+    assert resp.data["image"] == ["Upload a JPEG, PNG or WebP image."]
