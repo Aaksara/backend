@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from accounts.serializers import PublicUserSerializer
 from exchanges.models import ExchangeRequest
-from utilities.validators import validate_image_size
+from utilities.validators import validate_image_size, validate_web_image
 
 from . import services
 from .isbn import InvalidISBN, to_isbn13
@@ -64,7 +64,7 @@ class ListingImageSerializer(serializers.ModelSerializer):
         model = ListingImage
         fields = ["id", "image", "uploaded_at"]
         read_only_fields = ["id", "uploaded_at"]
-        extra_kwargs = {"image": {"validators": [validate_image_size]}}
+        extra_kwargs = {"image": {"validators": [validate_image_size, validate_web_image]}}
 
 
 class ListingSerializer(serializers.ModelSerializer):
